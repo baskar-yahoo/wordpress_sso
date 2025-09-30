@@ -1,0 +1,13 @@
+{
+    "name": "webtrees/wordpress-sso",
+    "description": "A module to provide seamless SSO with WordPress.",
+    "type": "webtrees-module",
+    "require": {
+        "league/oauth2-client": "^2.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Webtrees\\WordPressSso\\": "src/"
+        }
+    }
+}
