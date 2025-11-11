@@ -8,15 +8,23 @@ use Fisharebest\Webtrees\Http\RequestHandlers\Logout;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
+
 class WordPressSsoLogout extends Logout
 {
+    private WordPressSsoModule $module;
+
+    public function __construct(WordPressSsoModule $module)
+    {
+        $this->module = $module;
+    }
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         // First, log the user out of webtrees
         parent::handle($request);
 
         // Then, redirect to the WordPress logout URL
-        $wordPressLogoutUrl = get_preference('sso_url_logout');
+        $wordPressLogoutUrl = $this->module->getPreference(WordPressSsoModule::SSO_URL_LOGOUT);
 
         if (!empty($wordPressLogoutUrl)) {
             // Add a redirect parameter so WordPress can send the user back to webtrees

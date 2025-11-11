@@ -1,0 +1,94 @@
+<?php
+
+declared(strict_types=1);
+
+/** @var \Fisharebest\Webtrees\View $this */
+
+?>
+
+<div class="card">
+    <div class="card-header"><?= $this->translate('WordPress SSO Settings') ?></div>
+    <div class="card-body">
+        <form action="<?= $this->action() ?>" method="post">
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label"><?= $this->translate('Enable Seamless SSO') ?></label>
+                <div class="col-sm-9">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="sso_enabled" name="sso_enabled" value="1" <?= $this->sso_enabled ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="sso_enabled"><?= $this->translate('Redirect all unauthenticated users to WordPress for login.') ?></label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label"><?= $this->translate('Allow New User Creation') ?></label>
+                <div class="col-sm-9">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="sso_allow_creation" name="sso_allow_creation" value="1" <?= $this->sso_allow_creation ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="sso_allow_creation"><?= $this->translate('Automatically create new user accounts for first-time SSO logins. New accounts will require admin approval.') ?></label>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+            <p class="lead"><?= $this->translate('OAuth2 Provider Settings') ?></p>
+
+            <div class="form-group row">
+                <label for="sso_client_id" class="col-sm-3 col-form-label"><?= $this->translate('Client ID') ?></label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="sso_client_id" name="sso_client_id" value="<?= $this->escape($this->sso_client_id) ?>">
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label for="sso_client_secret" class="col-sm-3 col-form-label"><?= $this->translate('Client Secret') ?></label>
+                <div class="col-sm-9">
+                    <input type="password" class="form-control" id="sso_client_secret" name="sso_client_secret" value="<?= $this->escape($this->sso_client_secret) ?>">
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label for="sso_url_authorize" class="col-sm-3 col-form-label"><?= $this->translate('Authorization URL') ?></label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="sso_url_authorize" name="sso_url_authorize" value="<?= $this->escape($this->sso_url_authorize) ?>">
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label for="sso_url_access_token" class="col-sm-3 col-form-label"><?= $this->translate('Access Token URL') ?></label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="sso_url_access_token" name="sso_url_access_token" value="<?= $this->escape($this->sso_url_access_token) ?>">
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label for="sso_url_resource_owner_details" class="col-sm-3 col-form-label"><?= $this->translate('Resource Owner Details URL') ?></label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="sso_url_resource_owner_details" name="sso_url_resource_owner_details" value="<?= $this->escape($this->sso_url_resource_owner_details) ?>">
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label for="sso_url_logout" class="col-sm-3 col-form-label"><?= $this->translate('Logout URL') ?></label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="sso_url_logout" name="sso_url_logout" value="<?= $this->escape($this->sso_url_logout) ?>">
+                    <small class="form-text text-muted"><?= $this->translate('The URL to redirect to for Single Log-Out.') ?></small>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label"><?= $this->translate('Callback URL') ?></label>
+                <div class="col-sm-9">
+                    <input type="text" readonly class="form-control-plaintext" value="<?= $this->escape($this->callback_url) ?>">
+                    <small class="form-text text-muted"><?= $this->translate('Use this as the Redirect URI in your WordPress OAuth2 Server settings.') ?></small>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="offset-sm-3 col-sm-9">
+                    <button type="submit" class="btn btn-primary"><?= $this->translate('Save') ?></button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
