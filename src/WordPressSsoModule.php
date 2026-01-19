@@ -65,7 +65,8 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
 
     public function resourcesFolder(): string
     {
-        return __DIR__ . '/../resources/';
+        // Cross-platform path resolution
+        return dirname(__DIR__) . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR;
     }
 
     public function boot(): void
@@ -129,12 +130,22 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
             $auth_check = Auth::check() ? 'true' : 'false';
             $sso_callback_str = $is_sso_callback ? 'true' : 'false';
             $log_data = date('Y-m-d H:i:s') . " - SSO Debug: Enabled='$sso_enabled', Auth='$auth_check', IsCallback='$sso_callback_str', Route='" . $request->getUri()->getPath() . "'\n";
-            @file_put_contents(__DIR__ . '/../../../data/sso_debug.txt', $log_data, FILE_APPEND);
+            
+            // Use cross-platform path resolution for debug log file
+            $module_dir = dirname(__DIR__);
+            $modules_dir = dirname($module_dir);
+            $webtrees_dir = dirname($modules_dir);
+            $debug_log = $webtrees_dir . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'sso_debug.txt';
+            @file_put_contents($debug_log, $log_data, FILE_APPEND);
         }
 
         if (!Auth::check() && !$is_sso_callback && $sso_enabled === '1') {
             if ($this->getConfig('debugEnabled', '0') === '1') {
-                @file_put_contents(__DIR__ . '/../../../data/sso_debug.txt', "SSO Debug: Redirecting to Login Action\n", FILE_APPEND);
+                $module_dir = dirname(__DIR__);
+                $modules_dir = dirname($module_dir);
+                $webtrees_dir = dirname($modules_dir);
+                $debug_log = $webtrees_dir . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'sso_debug.txt';
+                @file_put_contents($debug_log, "SSO Debug: Redirecting to Login Action\n", FILE_APPEND);
             }
             return redirect(route('WordPressSsoLoginAction'));
         }

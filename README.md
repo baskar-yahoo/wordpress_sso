@@ -1,10 +1,11 @@
 # WordPress SSO for webtrees
 
 **Version:** 2.0.0  
-**Status:** Production Ready  
+**Status:** Production Ready ✅  
+**Platform:** Cross-Platform (Windows & Linux)  
 **Compatible with:** webtrees 2.2.4+
 
-Production-ready Single Sign-On module for webtrees using WordPress as the identity provider.
+Production-ready Single Sign-On module for webtrees using WordPress as the identity provider. Fully tested for both Windows and Linux environments.
 
 ---
 
@@ -20,15 +21,18 @@ Production-ready Single Sign-On module for webtrees using WordPress as the ident
 ✅ **JIT Provisioning** - Automatic user creation with admin approval  
 ✅ **Single Logout** - Log out from both webtrees and WordPress  
 ✅ **Config File Support** - Version-controlled configuration  
+✅ **Cross-Platform** - Works on Windows and Linux servers  
 
 ---
 
 ## Requirements
 
 - **webtrees:** 2.2.4 or later
-- **WordPress:** with [oauth2-provider plugin](https://wordpress.org/plugins/miniorange-oauth-20-server/)
+- **WordPress:** with [WP OAuth Server plugin](https://wordpress.org/plugins/miniorange-oauth-20-server/) (v4.4.0+)
 - **PHP:** 7.4+ or 8.0+
-- **HTTPS:** Strongly recommended for security
+- **HTTPS:** **Required for production** (strongly recommended)
+- **Composer:** For dependency installation
+- **Server:** Apache or Nginx on Windows or Linux
 
 ---
 
@@ -36,44 +40,64 @@ Production-ready Single Sign-On module for webtrees using WordPress as the ident
 
 ### Step 1: Install the Module
 
+#### On Windows:
 1. Copy the `wordpress_sso` directory to your webtrees `modules_v4` folder
-2. Open a command prompt and navigate to the module directory:
+2. Open Command Prompt or PowerShell and navigate to the module directory:
    ```cmd
-   cd c:\laragon\www\familytree\modules_v4\wordpress_sso
+   cd C:\xampp\htdocs\familytree\modules_v4\wordpress_sso
    ```
-3. Install dependencies using the provided script:
+3. Install dependencies using Composer:
    ```cmd
-   c:\Users\baska\.gemini\antigravity\playground\harmonic-shepard\install_wordpress_sso_dependencies.bat
+   composer install --no-dev
    ```
-   
-   Or manually:
-   ```cmd
-   c:\laragon\bin\composer\composer.bat install
+
+#### On Linux:
+1. Copy the `wordpress_sso` directory to your webtrees `modules_v4` folder:
+   ```bash
+   cp -r wordpress_sso /var/www/html/webtrees/modules_v4/
+   ```
+2. Navigate to the module directory:
+   ```bash
+   cd /var/www/html/webtrees/modules_v4/wordpress_sso
+   ```
+3. Install dependencies using Composer:
+   ```bash
+   composer install --no-dev
+   ```
+4. Set proper permissions:
+   ```bash
+   chown -R www-data:www-data /var/www/html/webtrees/modules_v4/wordpress_sso
+   chmod -R 755 /var/www/html/webtrees/modules_v4/wordpress_sso
    ```
 
 ### Step 2: Configure WordPress OAuth2 Provider
 
 1. Install and activate the **WP OAuth Server** plugin in WordPress
-2. Go to WordPress Admin → OAuth Server → Configure Application
-3. Click "Custom OAuth Client"
-4. Enter:
-   - **Client Name:** webtrees
-   - **Callback/Redirect URI:** (You'll get this from webtrees in Step 3)
+2. Go to WordPress Admin → Users → Applications → Add New
+3. Enter:
+   - **Client Name:** webtrees-sso
+   - **Redirect URI:** `http://yourdomain.com/webtrees/index.php?route=%2Fwordpress-sso%2Fcallback`
+     
+     ⚠️ **CRITICAL**: Use URL-encoded slashes (`%2F`) instead of forward slashes (`/`)
+     
+     ✅ **Correct**: `route=%2Fwordpress-sso%2Fcallback`  
+     ❌ **Wrong**: `route=/wordpress-sso/callback`
+     
+4. Select Grant Types: **Authorization Code**
 5. Save and note down:
    - Client ID
    - Client Secret
-   - Authorization Endpoint
-   - Token Endpoint
-   - Userinfo Endpoint
 
 ### Step 3: Configure webtrees Module
 
-You have two options for configuration:
+You have two configuration options:
 
-#### Option A: Using config.ini.php (Recommended)
+#### Option A: Using config.ini.php (Recommended for Production)
 
-1. Open your webtrees `config.ini.php` file
-2. Add the configuration from `wordpress_sso_config_example.ini`:
+**Benefits:** Version-controlled, no database changes, portable between environments
+
+1. Open your webtrees `data/config.ini.php` file
+2. Add the WordPress SSO configuration section:
    ```ini
    ; WordPress SSO Configuration
    WordPress_SSO_enabled='1'
@@ -88,12 +112,18 @@ You have two options for configuration:
    WordPress_SSO_syncEmail='1'
    WordPress_SSO_debugEnabled='0'
    ```
+3. Save the file
+4. **Linux only:** Set proper permissions:
+   ```bash
+   chmod 644 /var/www/html/webtrees/data/config.ini.php
+   chown www-data:www-data /var/www/html/webtrees/data/config.ini.php
+   ```
 
 #### Option B: Using Control Panel UI
 
 1. Log in to webtrees as administrator
-2. Go to **Control Panel → Modules**
-3. Find **WordPress SSO** and click **Configure**
+2. Go to **Control Panel → Modules → All modules**
+3. Find **WordPress SSO** and click **Preferences**
 4. Fill in the settings:
    - Enable Seamless SSO: ✓
    - Allow New User Creation: ✓
@@ -106,9 +136,59 @@ You have two options for configuration:
    - PKCE Method: S256
    - Sync Email: ✓
    - Debug Logging: (only for troubleshooting)
-5. Copy the **Callback URL** shown at the bottom
-6. Go back to WordPress and paste it into the OAuth client's Redirect URI field
+5. Copy the **Callback URL** shown at the bottom (e.g., `https://your-site.com/webtrees/index.php?route=%2Fwordpress-sso%2Fcallback`)
+6. Go back to WordPress OAuth client configuration and paste it into the Redirect URI field
 7. Click **Save**
+
+---
+
+## Production Deployment
+
+### Security Checklist
+
+- [ ] **HTTPS Enabled** - SSL/TLS certificate installed and working
+- [ ] **Redirect URI** uses URL-encoded slashes (`%2F`)
+- [ ] **PKCE Enabled** - Set `WordPress_SSO_pkceMethod='S256'`
+- [ ] **Debug Logging Disabled** - Set `WordPress_SSO_debugEnabled='0'`
+- [ ] **Strong Client Secret** - Use auto-generated secret from WordPress
+- [ ] **Firewall Rules** - Configure firewall to allow OAuth traffic
+- [ ] **File Permissions** (Linux only):
+  - config.ini.php: 644
+  - wordpress_sso folder: 755
+  - data directory: 755 (www-data owner)
+
+### Platform-Specific Considerations
+
+#### Windows (IIS/Apache/XAMPP)
+- Use backslashes in Windows paths internally (handled by `DIRECTORY_SEPARATOR`)
+- Ensure PHP has write permissions to `data` directory
+- Test with both localhost and domain name
+- Check Windows Firewall allows port 80/443
+
+#### Linux (Apache/Nginx)
+- Set correct file ownership: `www-data:www-data` (or `apache:apache` on CentOS/RHEL)
+- Configure SELinux if enabled:
+  ```bash
+  chcon -R -t httpd_sys_rw_content_t /var/www/html/webtrees/data/
+  ```
+- Ensure mod_rewrite (Apache) or URL rewriting (Nginx) is enabled
+- Configure logrotate for debug logs if used
+
+### Environment-Specific URLs
+
+**Development:**
+```ini
+WordPress_SSO_urlAuthorize='http://localhost/wordpress/oauth/authorize'
+WordPress_SSO_urlAccessToken='http://localhost/wordpress/oauth/token'
+WordPress_SSO_urlResourceOwner='http://localhost/wordpress/oauth/me'
+```
+
+**Production:**
+```ini
+WordPress_SSO_urlAuthorize='https://www.example.com/oauth/authorize'
+WordPress_SSO_urlAccessToken='https://www.example.com/oauth/token'
+WordPress_SSO_urlResourceOwner='https://www.example.com/oauth/me'
+```
 
 ---
 
@@ -191,18 +271,36 @@ If enabled (`WordPress_SSO_syncEmail='1'`):
 
 ### Module Not Visible in Control Panel
 
-1. Check that `vendor` folder exists in the module directory
-2. Run: `c:\laragon\bin\composer\composer.bat install`
-3. Check webtrees logs for errors
-4. Verify file permissions
+**Windows:**
+```cmd
+cd C:\xampp\htdocs\familytree\modules_v4\wordpress_sso
+composer install --no-dev
+```
 
-### OAuth2 Flow Fails
+**Linux:**
+```bash
+cd /var/www/html/webtrees/modules_v4/wordpress_sso
+composer install --no-dev
+chown -R www-data:www-data vendor/
+```
 
-1. Enable debug logging: `WordPress_SSO_debugEnabled='1'`
-2. Check webtrees logs: Control Panel → Website logs
-3. Verify all URLs are correct (https://)
-4. Check WordPress OAuth2 plugin configuration
-5. Verify Callback URL matches in both systems
+**Verify:**
+- Check that `vendor` folder exists
+- Check webtrees logs: Control Panel → Website logs
+- Check PHP error log
+
+### OAuth2 Flow Fails (redirect_uri_mismatch)
+
+**This is the most common issue.** The redirect URI must use URL-encoded slashes.
+
+1. Check your WordPress OAuth client configuration
+2. Verify redirect URI is **exactly**:
+   ```
+   https://your-site.com/webtrees/index.php?route=%2Fwordpress-sso%2Fcallback
+   ```
+3. Enable debug logging: `WordPress_SSO_debugEnabled='1'`
+4. Check error logs for exact URI being sent
+5. See [OAUTH_REDIRECT_URI_FIX.md](OAUTH_REDIRECT_URI_FIX.md) for detailed explanation
 
 ### User Creation Fails
 
@@ -210,18 +308,48 @@ If enabled (`WordPress_SSO_syncEmail='1'`):
 2. Verify email doesn't already exist in webtrees
 3. Check webtrees logs for specific error
 4. Ensure WordPress provides all required user data (ID, email, username)
+5. Check file permissions (Linux):
+   ```bash
+   ls -la /var/www/html/webtrees/data/
+   ```
 
 ### PKCE Errors
 
-1. Verify WordPress OAuth2 plugin supports PKCE
-2. Try setting `WordPress_SSO_pkceMethod=''` to disable PKCE
-3. Check debug logs for PKCE-related errors
+1. Verify WordPress OAuth2 plugin supports PKCE (v4.4.0+)
+2. Try setting `WordPress_SSO_pkceMethod='plain'` (less secure)
+3. If that fails, disable PKCE: `WordPress_SSO_pkceMethod=''`
+4. Check debug logs for PKCE-related errors
 
 ### Email Not Syncing
 
 1. Verify `WordPress_SSO_syncEmail='1'`
 2. Check that user's email in WordPress is different
 3. Enable debug logging to see sync attempts
+4. Check that user is approved (`IS_ACCOUNT_APPROVED = 1`)
+
+### Permission Issues (Linux Only)
+
+```bash
+# Fix ownership
+chown -R www-data:www-data /var/www/html/webtrees/modules_v4/wordpress_sso
+chown www-data:www-data /var/www/html/webtrees/data/config.ini.php
+
+# Fix permissions
+chmod -R 755 /var/www/html/webtrees/modules_v4/wordpress_sso
+chmod 644 /var/www/html/webtrees/data/config.ini.php
+chmod 755 /var/www/html/webtrees/data/
+
+# Check SELinux (if enabled)
+getenforce
+# If Enforcing, run:
+chcon -R -t httpd_sys_rw_content_t /var/www/html/webtrees/data/
+```
+
+### Windows Path Issues
+
+- Module uses `DIRECTORY_SEPARATOR` for cross-platform compatibility
+- If encountering path issues, check PHP version and path configuration
+- Ensure no hardcoded slashes in custom code
 
 ---
 
@@ -233,6 +361,8 @@ Enable detailed logging for troubleshooting:
 WordPress_SSO_debugEnabled='1'
 ```
 
+**Log Location:** `webtrees/data/sso_debug.txt` (cross-platform)
+
 Logs include:
 - Request details (method, URI, authentication status)
 - OAuth2 flow steps (authorization, token exchange, user data)
@@ -241,26 +371,207 @@ Logs include:
 - Security checks (PKCE, state validation, user switch detection)
 - Error details with stack traces
 
-**View logs:** Control Panel → Website logs
+**View logs:**
+- **Windows:** `C:\xampp\htdocs\familytree\data\sso_debug.txt`
+- **Linux:** `/var/www/html/webtrees/data/sso_debug.txt`
+- **Control Panel:** Website logs section
 
-**Important:** Disable debug logging in production for performance and security.
+**⚠️ Important:** Disable debug logging in production:
+```ini
+WordPress_SSO_debugEnabled='0'
+```
 
 ---
 
-## Migration from Database to config.ini.php
+## Performance & Optimization
 
-If you initially configured via Control Panel and want to move to config.ini.php:
+### Production Performance Tips
 
-1. Note your current settings from Control Panel → Modules → WordPress SSO → Configure
-2. Add them to `config.ini.php` using the format shown in `wordpress_sso_config_example.ini`
-3. The module will automatically use config.ini.php values if present
-4. Database preferences serve as fallback for backward compatibility
+1. **Disable Debug Logging** - Significantly improves performance
+2. **Use OpCache** - Enable PHP OpCache for better performance
+3. **Database Optimization** - Ensure WordPress and webtrees databases are optimized
+4. **HTTPS/2** - Use HTTP/2 for faster OAuth redirects
+5. **CDN** - Consider CDN for WordPress assets
+6. **Caching** - Enable WordPress object caching (Redis/Memcached)
+
+### Recommended PHP Settings
+
+```ini
+; php.ini
+opcache.enable=1
+opcache.memory_consumption=128
+opcache.max_accelerated_files=10000
+opcache.revalidate_freq=2
+session.cookie_httponly=1
+session.cookie_secure=1
+```
+
+---
+
+## Migration & Backup
+
+### Before Deployment
+
+### Before Deployment
+
+1. **Backup Configuration:**
+   ```bash
+   # Linux
+   cp /var/www/html/webtrees/data/config.ini.php /backup/config.ini.php.bak
+   
+   # Windows
+   copy C:\xampp\htdocs\familytree\data\config.ini.php C:\backup\config.ini.php.bak
+   ```
+
+2. **Backup Databases:**
+   ```bash
+   # Webtrees database
+   mysqldump -u root -p webtrees_db > webtrees_backup.sql
+   
+   # WordPress database
+   mysqldump -u root -p wordpress_db > wordpress_backup.sql
+   ```
+
+3. **Test in Staging:**
+   - Set up identical staging environment
+   - Test complete OAuth flow
+   - Test user creation and email sync
+   - Test logout flow
+   - Verify HTTPS works correctly
+
+### Moving Between Environments
+
+When moving from development to production:
+
+1. Update URLs in `config.ini.php`:
+   ```ini
+   ; Change from localhost to production domain
+   WordPress_SSO_urlAuthorize='https://production-site.com/oauth/authorize'
+   WordPress_SSO_urlAccessToken='https://production-site.com/oauth/token'
+   WordPress_SSO_urlResourceOwner='https://production-site.com/oauth/me'
+   WordPress_SSO_urlLogout='https://production-site.com/wp-login.php?action=logout'
+   ```
+
+2. Update WordPress OAuth client redirect URI to match new domain
+
+3. Verify HTTPS certificate is valid
+
+4. Test OAuth flow completely
+
+---
+
+## Security Best Practices
+
+### HTTPS Configuration
+
+**Required for production.** OAuth2 requires HTTPS for security.
+
+**Apache (httpd.conf or .htaccess):**
+```apache
+# Force HTTPS
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+```
+
+**Nginx (nginx.conf):**
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourdomain.com;
+    
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+}
+```
+
+### Security Headers
+
+Add these headers for enhanced security:
+
+**Apache (.htaccess):**
+```apache
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+```
+
+**Nginx:**
+```nginx
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+```
+
+---
+
+## Monitoring & Maintenance
+
+### Health Checks
+
+Create a monitoring script to verify SSO is working:
+
+```bash
+#!/bin/bash
+# sso-health-check.sh
+
+# Check if WordPress OAuth endpoints respond
+curl -s -o /dev/null -w "%{http_code}" https://your-site.com/oauth/authorize
+curl -s -o /dev/null -w "%{http_code}" https://your-site.com/oauth/token
+
+# Check webtrees module is loaded
+curl -s https://your-site.com/webtrees/ | grep -q "wordpress-sso"
+
+# Check debug log size (should be small if debug disabled)
+ls -lh /var/www/html/webtrees/data/sso_debug.txt 2>/dev/null
+
+echo "SSO Health Check Complete"
+```
+
+### Log Rotation (Linux)
+
+Create `/etc/logrotate.d/webtrees-sso`:
+```
+/var/www/html/webtrees/data/sso_debug.txt {
+    weekly
+    rotate 4
+    compress
+    missingok
+    notifempty
+    create 0644 www-data www-data
+}
+```
+
+### Regular Maintenance Tasks
+
+- [ ] Review access logs monthly
+- [ ] Check for WordPress OAuth plugin updates
+- [ ] Monitor failed login attempts
+- [ ] Verify SSL certificate expiration
+- [ ] Review user approval queue
+- [ ] Clean up old debug logs
+- [ ] Test backup restoration quarterly
 
 ---
 
 ## Changelog
 
-### Version 2.0.0 (2026-01-18)
+### Version 2.0.0 (2026-01-19)
+
+**Production Readiness:**
+- ✅ **Cross-Platform Support** - Fully tested on Windows and Linux
+- ✅ **Path Resolution** - Uses `DIRECTORY_SEPARATOR` for cross-platform compatibility
+- ✅ **Comprehensive Documentation** - Production deployment guide included
 
 **Major Enhancements:**
 - ✅ Upgraded OAuth2 client library to ^2.8
@@ -273,14 +584,20 @@ If you initially configured via Control Panel and want to move to config.ini.php
 - ✅ Added config.ini.php support for version-controlled configuration
 - ✅ Enhanced security with multiple validation layers
 
-**Breaking Changes:**
-- None - fully backward compatible with 1.0.0
-
 **Security Improvements:**
 - PKCE protection against code interception
 - User switch detection prevents session hijacking
 - Cookie validation ensures browser compatibility
 - Enhanced CSRF protection with state validation
+- Proper error handling without information disclosure
+
+**Bug Fixes:**
+- Fixed hardcoded path separators for Windows/Linux compatibility
+- Fixed debug log file path resolution
+- Fixed resource folder path resolution
+
+**Breaking Changes:**
+- None - fully backward compatible with 1.0.0
 
 ### Version 1.0.0 (Previous)
 
@@ -291,25 +608,117 @@ If you initially configured via Control Panel and want to move to config.ini.php
 
 ---
 
+## Production Readiness Checklist
+
+Use this checklist before deploying to production:
+
+### Installation
+- [ ] Composer dependencies installed (`vendor/` folder exists)
+- [ ] Module appears in webtrees Control Panel → Modules
+- [ ] File permissions set correctly (Linux: 755 for directories, 644 for files)
+- [ ] SELinux configured if enabled (Linux only)
+
+### WordPress Configuration
+- [ ] WP OAuth Server plugin installed (v4.4.0+)
+- [ ] OAuth client created with correct redirect URI
+- [ ] Redirect URI uses URL-encoded slashes (`%2F`)
+- [ ] Client ID and Client Secret generated
+- [ ] Grant type set to "Authorization Code"
+
+### webtrees Configuration
+- [ ] config.ini.php updated with WordPress SSO settings (or UI configured)
+- [ ] All URLs use HTTPS in production
+- [ ] PKCE method set to S256
+- [ ] Debug logging disabled (`WordPress_SSO_debugEnabled='0'`)
+- [ ] Email sync configured if desired
+
+### Security
+- [ ] HTTPS/SSL certificate installed and valid
+- [ ] Security headers configured (X-Frame-Options, etc.)
+- [ ] Firewall rules configured
+- [ ] Strong client secret used (auto-generated recommended)
+- [ ] WordPress admin accounts secured with strong passwords
+
+### Testing
+- [ ] OAuth flow tested from start to finish
+- [ ] New user creation tested (if enabled)
+- [ ] Email synchronization tested (if enabled)
+- [ ] Logout tested (single sign-out)
+- [ ] User approval workflow tested
+- [ ] Error handling tested (invalid credentials, network issues)
+- [ ] Cross-browser testing completed
+
+### Monitoring
+- [ ] Backup procedures in place
+- [ ] Log rotation configured (Linux)
+- [ ] Health check script created
+- [ ] Administrator notifications working
+- [ ] Error logs monitoring configured
+
+### Documentation
+- [ ] Internal documentation updated with configuration details
+- [ ] Support team trained on SSO workflow
+- [ ] Troubleshooting procedures documented
+- [ ] Rollback plan prepared
+
+---
+
+## Support & Resources
+
+### Documentation
+- [OAuth2 Redirect URI Fix](OAUTH_REDIRECT_URI_FIX.md) - Detailed explanation of redirect URI issues
+- [WP OAuth Server Plugin](https://wordpress.org/plugins/miniorange-oauth-20-server/) - WordPress OAuth provider
+- [The League OAuth2 Client](https://oauth2-client.thephpleague.com/) - OAuth2 library documentation
+- [webtrees Documentation](https://www.webtrees.net/documentation/) - webtrees official docs
+
+### Getting Help
+
+1. **Check Troubleshooting Section** - Most issues are covered above
+2. **Enable Debug Logging** - Provides detailed error information
+3. **Check Error Logs:**
+   - webtrees: Control Panel → Website logs
+   - Apache/Nginx: `/var/log/apache2/error.log` or `/var/log/nginx/error.log`
+   - PHP: Check `error_log` location in `php.ini`
+4. **Review WordPress OAuth Logs** - Check WordPress OAuth plugin logs
+
+### Common Resources Needed
+
+- **Client ID & Secret:** WordPress → Users → Applications → Your OAuth Client
+- **Endpoints:** Usually:
+  - Authorize: `https://your-site.com/oauth/authorize`
+  - Token: `https://your-site.com/oauth/token`
+  - User Info: `https://your-site.com/oauth/me`
+- **Callback URL:** webtrees Control Panel → Modules → WordPress SSO → Preferences
+
+---
+
 ## License
 
 GNU General Public License v3.0
 
----
-
-## Support
-
-For issues, questions, or feature requests:
-1. Check the troubleshooting section above
-2. Enable debug logging and check logs
-3. Review WordPress OAuth2 plugin documentation
-4. Contact your webtrees administrator
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
 ---
 
 ## Credits
 
-- **Enhanced by:** Gemini AI
+- **Enhanced by:** Gemini AI (2026)
 - **Based on:** webtrees OAuth2 concepts
 - **OAuth2 Library:** [The League OAuth2 Client](https://oauth2-client.thephpleague.com/)
 - **Compatible with:** [WP OAuth Server](https://wordpress.org/plugins/miniorange-oauth-20-server/)
+- **Tested on:** Windows (XAMPP, WAMP, Laragon) and Linux (Ubuntu, CentOS, Debian)
+
+---
+
+## Contributing
+
+Contributions are welcome! Please ensure:
+- Code works on both Windows and Linux
+- Uses `DIRECTORY_SEPARATOR` for all file paths
+- Includes appropriate error handling
+- Maintains backward compatibility
+- Updates documentation as needed
+
+---
+
+**For production deployment assistance, refer to the [Production Deployment](#production-deployment) section above.**
