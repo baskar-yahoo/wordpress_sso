@@ -7,6 +7,7 @@ use Fisharebest\Webtrees\Http\RequestHandlers\HomePage;
 use Fisharebest\Webtrees\Http\RequestHandlers\Logout;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Webtrees\WordPressSso\WordPressSsoModule;
 
 
 class WordPressSsoLogout extends Logout

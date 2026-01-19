@@ -1,94 +1,174 @@
 <?php
 
-declared(strict_types=1);
+use Fisharebest\Webtrees\I18N;
 
 /** @var \Fisharebest\Webtrees\View $this */
 
 ?>
 
 <div class="card">
-    <div class="card-header"><?= $this->translate('WordPress SSO Settings') ?></div>
+    <div class="card-header"><?= I18N::translate('WordPress SSO Settings') ?></div>
     <div class="card-body">
-        <form action="<?= $this->action() ?>" method="post">
+        
+        <?php if ($config_location === 'config.ini.php'): ?>
+        <div class="alert alert-info">
+            <strong><?= I18N::translate('Configuration Source:') ?></strong> config.ini.php
+            <br>
+            <small><?= I18N::translate('Settings are loaded from config.ini.php. Changes made here will be saved to the database but will be overridden by config.ini.php values.') ?></small>
+        </div>
+        <?php else: ?>
+        <div class="alert alert-warning">
+            <strong><?= I18N::translate('Configuration Source:') ?></strong> Database
+            <br>
+            <small><?= I18N::translate('For version-controlled configuration, add settings to config.ini.php. See README.md for details.') ?></small>
+        </div>
+        <?php endif; ?>
+
+        <form action="<?= $action_url ?>" method="post">
+            <?= csrf_field() ?>
+            
+            <h4><?= I18N::translate('Basic Settings') ?></h4>
+            
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label"><?= $this->translate('Enable Seamless SSO') ?></label>
+                <label class="col-sm-3 col-form-label"><?= I18N::translate('Enable Seamless SSO') ?></label>
                 <div class="col-sm-9">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="sso_enabled" name="sso_enabled" value="1" <?= $this->sso_enabled ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="sso_enabled"><?= $this->translate('Redirect all unauthenticated users to WordPress for login.') ?></label>
+                        <input type="checkbox" class="form-check-input" id="sso_enabled" name="sso_enabled" value="1" <?= $sso_enabled ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="sso_enabled"><?= I18N::translate('Redirect all unauthenticated users to WordPress for login.') ?></label>
                     </div>
                 </div>
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label"><?= $this->translate('Allow New User Creation') ?></label>
+                <label class="col-sm-3 col-form-label"><?= I18N::translate('Allow New User Creation') ?></label>
                 <div class="col-sm-9">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="sso_allow_creation" name="sso_allow_creation" value="1" <?= $this->sso_allow_creation ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="sso_allow_creation"><?= $this->translate('Automatically create new user accounts for first-time SSO logins. New accounts will require admin approval.') ?></label>
+                        <input type="checkbox" class="form-check-input" id="sso_allow_creation" name="sso_allow_creation" value="1" <?= $sso_allow_creation ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="sso_allow_creation"><?= I18N::translate('Automatically create new user accounts for first-time SSO logins. New accounts will require admin approval.') ?></label>
                     </div>
                 </div>
             </div>
 
             <hr>
-            <p class="lead"><?= $this->translate('OAuth2 Provider Settings') ?></p>
+            <h4><?= I18N::translate('OAuth2 Provider Settings') ?></h4>
 
             <div class="form-group row">
-                <label for="sso_client_id" class="col-sm-3 col-form-label"><?= $this->translate('Client ID') ?></label>
+                <label for="sso_client_id" class="col-sm-3 col-form-label"><?= I18N::translate('Client ID') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_client_id" name="sso_client_id" value="<?= $this->escape($this->sso_client_id) ?>">
+                    <input type="text" class="form-control" id="sso_client_id" name="sso_client_id" value="<?= e($sso_client_id) ?>">
                 </div>
             </div>
 
             <div class="form-group row">
-                <label for="sso_client_secret" class="col-sm-3 col-form-label"><?= $this->translate('Client Secret') ?></label>
+                <label for="sso_client_secret" class="col-sm-3 col-form-label"><?= I18N::translate('Client Secret') ?></label>
                 <div class="col-sm-9">
-                    <input type="password" class="form-control" id="sso_client_secret" name="sso_client_secret" value="<?= $this->escape($this->sso_client_secret) ?>">
+                    <input type="password" class="form-control" id="sso_client_secret" name="sso_client_secret" value="<?= e($sso_client_secret) ?>">
                 </div>
             </div>
 
             <div class="form-group row">
-                <label for="sso_url_authorize" class="col-sm-3 col-form-label"><?= $this->translate('Authorization URL') ?></label>
+                <label for="sso_url_authorize" class="col-sm-3 col-form-label"><?= I18N::translate('Authorization URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_url_authorize" name="sso_url_authorize" value="<?= $this->escape($this->sso_url_authorize) ?>">
+                    <input type="text" class="form-control" id="sso_url_authorize" name="sso_url_authorize" value="<?= e($sso_url_authorize) ?>">
+                    <small class="form-text text-muted">Example: https://your-site.com/oauth/authorize</small>
                 </div>
             </div>
 
             <div class="form-group row">
-                <label for="sso_url_access_token" class="col-sm-3 col-form-label"><?= $this->translate('Access Token URL') ?></label>
+                <label for="sso_url_access_token" class="col-sm-3 col-form-label"><?= I18N::translate('Access Token URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_url_access_token" name="sso_url_access_token" value="<?= $this->escape($this->sso_url_access_token) ?>">
+                    <input type="text" class="form-control" id="sso_url_access_token" name="sso_url_access_token" value="<?= e($sso_url_access_token) ?>">
+                    <small class="form-text text-muted">Example: https://your-site.com/oauth/token</small>
                 </div>
             </div>
 
             <div class="form-group row">
-                <label for="sso_url_resource_owner_details" class="col-sm-3 col-form-label"><?= $this->translate('Resource Owner Details URL') ?></label>
+                <label for="sso_url_resource_owner_details" class="col-sm-3 col-form-label"><?= I18N::translate('Resource Owner Details URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_url_resource_owner_details" name="sso_url_resource_owner_details" value="<?= $this->escape($this->sso_url_resource_owner_details) ?>">
+                    <input type="text" class="form-control" id="sso_url_resource_owner_details" name="sso_url_resource_owner_details" value="<?= e($sso_url_resource_owner_details) ?>">
+                    <small class="form-text text-muted">Example: https://your-site.com/oauth/me</small>
                 </div>
             </div>
 
             <div class="form-group row">
-                <label for="sso_url_logout" class="col-sm-3 col-form-label"><?= $this->translate('Logout URL') ?></label>
+                <label for="sso_url_logout" class="col-sm-3 col-form-label"><?= I18N::translate('Logout URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_url_logout" name="sso_url_logout" value="<?= $this->escape($this->sso_url_logout) ?>">
-                    <small class="form-text text-muted"><?= $this->translate('The URL to redirect to for Single Log-Out.') ?></small>
+                    <input type="text" class="form-control" id="sso_url_logout" name="sso_url_logout" value="<?= e($sso_url_logout) ?>">
+                    <small class="form-text text-muted"><?= I18N::translate('The URL to redirect to for Single Log-Out.') ?> Example: https://your-site.com/wp-login.php?action=logout</small>
+                </div>
+            </div>
+
+            <hr>
+            <h4><?= I18N::translate('Security Settings') ?></h4>
+
+            <div class="form-group row">
+                <label for="sso_pkce_method" class="col-sm-3 col-form-label"><?= I18N::translate('PKCE Method') ?></label>
+                <div class="col-sm-9">
+                    <select class="form-control" id="sso_pkce_method" name="sso_pkce_method">
+                        <option value="S256" <?= $sso_pkce_method === 'S256' ? 'selected' : '' ?>>S256 (Recommended)</option>
+                        <option value="plain" <?= $sso_pkce_method === 'plain' ? 'selected' : '' ?>>Plain</option>
+                        <option value="" <?= $sso_pkce_method === '' ? 'selected' : '' ?>>Disabled</option>
+                    </select>
+                    <small class="form-text text-muted"><?= I18N::translate('PKCE (Proof Key for Code Exchange) adds extra security to OAuth2 flow. S256 is recommended.') ?></small>
+                </div>
+            </div>
+
+            <hr>
+            <h4><?= I18N::translate('Feature Settings') ?></h4>
+
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label"><?= I18N::translate('Sync Email from WordPress') ?></label>
+                <div class="col-sm-9">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="sso_sync_email" name="sso_sync_email" value="1" <?= $sso_sync_email ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="sso_sync_email"><?= I18N::translate('Update user email from WordPress on each login.') ?></label>
+                    </div>
                 </div>
             </div>
 
             <div class="form-group row">
-                <label class="col-sm-3 col-form-label"><?= $this->translate('Callback URL') ?></label>
+                <label class="col-sm-3 col-form-label"><?= I18N::translate('Debug Logging') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" readonly class="form-control-plaintext" value="<?= $this->escape($this->callback_url) ?>">
-                    <small class="form-text text-muted"><?= $this->translate('Use this as the Redirect URI in your WordPress OAuth2 Server settings.') ?></small>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="sso_debug_enabled" name="sso_debug_enabled" value="1" <?= $sso_debug_enabled ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="sso_debug_enabled"><?= I18N::translate('Enable detailed debug logging (for troubleshooting only).') ?></label>
+                    </div>
+                    <small class="form-text text-muted"><?= I18N::translate('Debug logs will appear in Control Panel → Website logs. Disable in production for performance.') ?></small>
+                </div>
+            </div>
+
+            <hr>
+            <h4><?= I18N::translate('Integration Information') ?></h4>
+
+            <div class="form-group row">
+                <label class="col-sm-3 col-form-label"><?= I18N::translate('Callback URL') ?></label>
+                <div class="col-sm-9">
+                    <input type="text" readonly class="form-control-plaintext" value="<?= e($callback_url) ?>">
+                    <small class="form-text text-muted"><?= I18N::translate('Use this as the Redirect URI in your WordPress OAuth2 Server settings.') ?></small>
                 </div>
             </div>
 
             <div class="form-group row">
                 <div class="offset-sm-3 col-sm-9">
-                    <button type="submit" class="btn btn-primary"><?= $this->translate('Save') ?></button>
+                    <button type="submit" class="btn btn-primary"><?= I18N::translate('Save') ?></button>
+                    <a href="<?= e($callback_url) ?>" class="btn btn-secondary" target="_blank"><?= I18N::translate('Test OAuth Flow') ?></a>
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header"><?= I18N::translate('Quick Start Guide') ?></div>
+    <div class="card-body">
+        <ol>
+            <li><?= I18N::translate('Install and configure the WordPress OAuth2 Server plugin') ?></li>
+            <li><?= I18N::translate('Create a new OAuth2 client in WordPress with the Callback URL shown above') ?></li>
+            <li><?= I18N::translate('Copy the Client ID and Client Secret from WordPress to the fields above') ?></li>
+            <li><?= I18N::translate('Fill in the OAuth2 endpoint URLs from WordPress') ?></li>
+            <li><?= I18N::translate('Enable Seamless SSO and save settings') ?></li>
+            <li><?= I18N::translate('Test by logging out and visiting the site') ?></li>
+        </ol>
+        <p><strong><?= I18N::translate('For detailed documentation, see README.md in the module directory.') ?></strong></p>
     </div>
 </div>
