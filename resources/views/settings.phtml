@@ -143,10 +143,36 @@ use Fisharebest\Webtrees\I18N;
             <div class="form-group row">
                 <label class="col-sm-3 col-form-label"><?= I18N::translate('Callback URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" readonly class="form-control-plaintext" value="<?= e($callback_url) ?>">
+                    <input type="text" readonly class="form-control-plaintext" value="<?= e($callback_url) ?>" id="callback_url_field">
                     <small class="form-text text-muted"><?= I18N::translate('Use this as the Redirect URI in your WordPress OAuth2 Server settings.') ?></small>
+                    <button type="button" class="btn btn-sm btn-info mt-2" onclick="copyToClipboard()"><?= I18N::translate('Copy to Clipboard') ?></button>
                 </div>
             </div>
+            
+            <?php if ($sso_debug_enabled): ?>
+            <div class="alert alert-warning mt-3">
+                <h5><?= I18N::translate('Debug Information') ?></h5>
+                <table class="table table-sm">
+                    <tr>
+                        <th><?= I18N::translate('Callback URL (Plain)') ?>:</th>
+                        <td><code><?= e($callback_url_raw) ?></code></td>
+                    </tr>
+                    <tr>
+                        <th><?= I18N::translate('URL Encoded') ?>:</th>
+                        <td><code><?= e($callback_url_encoded) ?></code></td>
+                    </tr>
+                    <tr>
+                        <th><?= I18N::translate('Length') ?>:</th>
+                        <td><?= strlen($callback_url) ?> characters</td>
+                    </tr>
+                    <tr>
+                        <th><?= I18N::translate('Has trailing slash?') ?>:</th>
+                        <td><?= substr($callback_url, -1) === '/' ? 'YES' : 'NO' ?></td>
+                    </tr>
+                </table>
+                <p><strong><?= I18N::translate('Important:') ?></strong> <?= I18N::translate('The redirect URI in WordPress must match EXACTLY (case-sensitive, no extra spaces or characters).') ?></p>
+            </div>
+            <?php endif; ?>
 
             <div class="form-group row">
                 <div class="offset-sm-3 col-sm-9">
@@ -154,6 +180,16 @@ use Fisharebest\Webtrees\I18N;
                     <a href="<?= e($callback_url) ?>" class="btn btn-secondary" target="_blank"><?= I18N::translate('Test OAuth Flow') ?></a>
                 </div>
             </div>
+            
+            <script>
+            function copyToClipboard() {
+                var copyText = document.getElementById("callback_url_field");
+                copyText.select();
+                copyText.setSelectionRange(0, 99999);
+                document.execCommand("copy");
+                alert("Copied: " + copyText.value);
+            }
+            </script>
         </form>
     </div>
 </div>

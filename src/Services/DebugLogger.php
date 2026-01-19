@@ -2,8 +2,6 @@
 
 namespace Webtrees\WordPressSso\Services;
 
-use Fisharebest\Webtrees\Log;
-
 /**
  * Debug logging service for WordPress SSO
  */
@@ -35,7 +33,8 @@ class DebugLogger
             $log_message .= ' | Context: ' . json_encode($context, JSON_PRETTY_PRINT);
         }
 
-        Log::addDebugLog($log_message);
+        // Use PHP's error_log() to write to the web server's error log
+        error_log($log_message);
     }
 
     /**

@@ -141,6 +141,9 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
                 $this->logger->log('PKCE code loaded from session');
             }
             
+            // Check WordPress OAuth configuration (for debugging)
+            $this->checkWordPressOAuthConfig();
+            
             // Token exchange
             $accessToken = $this->exchangeCodeForToken($provider, $queryParams['code']);
             
@@ -244,6 +247,52 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
     }
 
     /**
+     * Check WordPress OAuth client configuration (debugging)
+     */
+    private function checkWordPressOAuthConfig(): void
+    {
+        try {
+            $clientId = $this->module->getConfig('clientId');
+            
+            // Try to query WordPress database for OAuth client config
+            $wpDbName = 'svajana_wp'; // Your WordPress database
+            $query = "SELECT client_id, redirect_uri, name FROM {$wpDbName}.wp_oauth_clients WHERE client_id = ?";
+            
+            $result = DB::table(DB::raw($wpDbName . '.wp_oauth_clients'))
+                ->where('client_id', '=', $clientId)
+                ->select(['client_id', 'redirect_uri', 'name'])
+                ->first();
+            
+            if ($result) {
+                $this->logger->log('WordPress OAuth Client Configuration Found', [
+                    'client_id' => $result->client_id,
+                    'redirect_uri' => $result->redirect_uri,
+                    'name' => $result->name,
+                ]);
+                
+                error_log('[WordPress SSO] WordPress OAuth Client Config:');
+                error_log('[WordPress SSO] Redirect URI in WordPress DB: ' . $result->redirect_uri);
+                error_log('[WordPress SSO] Expected Redirect URI: ' . route('WordPressSsoLoginAction'));
+                
+                if ($result->redirect_uri !== route('WordPressSsoLoginAction')) {
+                    error_log('[WordPress SSO] *** MISMATCH DETECTED ***');
+                    error_log('[WordPress SSO] DB has: ' . $result->redirect_uri);
+                    error_log('[WordPress SSO] We send: ' . route('WordPressSsoLoginAction'));
+                }
+            } else {
+                $this->logger->log('WordPress OAuth Client NOT found in database', [
+                    'client_id' => $clientId,
+                ]);
+            }
+        } catch (\Exception $e) {
+            $this->logger->log('Could not check WordPress OAuth config', [
+                'error' => $e->getMessage(),
+            ]);
+            error_log('[WordPress SSO] Could not check WordPress OAuth config: ' . $e->getMessage());
+        }
+    }
+    
+    /**
      * Validate module configuration
      */
     private function validateConfiguration(): void
@@ -268,10 +317,12 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
      */
     private function createProvider(): GenericProvider
     {
+        $redirectUri = route('WordPressSsoLoginAction');
+        
         $config = [
             'clientId'                => $this->module->getConfig('clientId'),
             'clientSecret'            => $this->module->getConfig('clientSecret'),
-            'redirectUri'             => route('WordPressSsoLoginAction'),
+            'redirectUri'             => $redirectUri,
             'urlAuthorize'            => $this->module->getConfig('urlAuthorize'),
             'urlAccessToken'          => $this->module->getConfig('urlAccessToken'),
             'urlResourceOwnerDetails' => $this->module->getConfig('urlResourceOwner'),
@@ -283,6 +334,19 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             $config['pkceMethod'] = $pkceMethod;
             $this->logger->log('PKCE enabled', ['method' => $pkceMethod]);
         }
+
+        $this->logger->log('OAuth Provider Configuration', [
+            'redirectUri' => $redirectUri,
+            'redirectUri_urlencoded' => urlencode($redirectUri),
+            'redirectUri_length' => strlen($redirectUri),
+            'clientId' => substr($this->module->getConfig('clientId'), 0, 8) . '...',
+            'urlAuthorize' => $this->module->getConfig('urlAuthorize'),
+        ]);
+        
+        // Log the exact redirect URI for WordPress configuration
+        error_log('[WordPress SSO] EXACT REDIRECT URI TO CONFIGURE IN WORDPRESS:');
+        error_log('[WordPress SSO] ' . $redirectUri);
+        error_log('[WordPress SSO] URL Encoded: ' . urlencode($redirectUri));
 
         return new GenericProvider($config);
     }
@@ -335,6 +399,26 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             $this->logger->log('Access token received from WordPress');
             return $accessToken;
         } catch (IdentityProviderException $e) {
+            $errorMessage = $e->getMessage();
+            $this->logger->log('Token exchange failed', [
+                'error' => $errorMessage,
+                'code_length' => strlen($code),
+            ]);
+            
+            // If it's a redirect_uri_mismatch error, log detailed debugging info
+            if (strpos($errorMessage, 'redirect_uri_mismatch') !== false) {
+                $redirectUri = route('WordPressSsoLoginAction');
+                error_log('=== REDIRECT URI MISMATCH DEBUG ===');
+                error_log('[WordPress SSO] Redirect URI sent: "' . $redirectUri . '"');
+                error_log('[WordPress SSO] Redirect URI length: ' . strlen($redirectUri));
+                error_log('[WordPress SSO] Redirect URI (URL encoded): ' . urlencode($redirectUri));
+                error_log('[WordPress SSO] Redirect URI (raw bytes): ' . bin2hex($redirectUri));
+                error_log('[WordPress SSO] Error from WordPress: ' . $errorMessage);
+                error_log('[WordPress SSO] SOLUTION: Check http://localhost/svajana/check-oauth-config.php');
+                error_log('[WordPress SSO] Make sure the redirect URI in WordPress EXACTLY matches the one above');
+                error_log('=== END DEBUG ===');
+            }
+            
             throw new TokenExchangeException('Token exchange failed: ' . $e->getMessage());
         }
     }

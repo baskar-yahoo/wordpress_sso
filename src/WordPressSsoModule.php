@@ -146,6 +146,8 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
     {
         $this->layout = 'layouts/administration';
 
+        $callback_url = route('WordPressSsoLoginAction');
+        
         $params = [
             'title' => $this->title(),
             'sso_enabled' => (bool) $this->getConfig('enabled'),
@@ -159,7 +161,9 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
             'sso_pkce_method' => $this->getConfig('pkceMethod', 'S256'),
             'sso_sync_email' => (bool) $this->getConfig('syncEmail'),
             'sso_debug_enabled' => (bool) $this->getConfig('debugEnabled'),
-            'callback_url' => route('WordPressSsoLoginAction'),
+            'callback_url' => $callback_url,
+            'callback_url_encoded' => urlencode($callback_url),
+            'callback_url_raw' => htmlspecialchars($callback_url),
             'action_url' => $this->getConfigLink(),
             'config_location' => $this->getConfigLocation(),
         ];
