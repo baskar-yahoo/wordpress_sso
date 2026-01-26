@@ -155,6 +155,16 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             // Email sync
             $this->syncEmail($user, $userData['user_email']);
 
+            // Perform login check (but don't login if not approved yet)
+            if ($user->getPreference(UserInterface::PREF_IS_ACCOUNT_APPROVED) !== '1') {
+                FlashMessages::addMessage(
+                    I18N::translate('Your account has been created and is pending administrator approval. You will be notified via email once approved.'),
+                    'success'
+                );
+                $this->cleanupSession();
+                return redirect(route(HomePage::class));
+            }
+
             // Login
             $this->performLogin($user);
 
@@ -533,7 +543,13 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             . I18N::translate('You can approve this user in the webtrees control panel under \'Users\'.');
 
         foreach ($this->user_service->administrators() as $admin) {
-            $this->email_service->send($admin, $subject, $body);
+            $this->logger->log('Sending approval request email', [
+                'to_admin' => $admin->email(),
+                'new_user' => $newUser->userName()
+            ]);
+            
+            // EmailService::send($from, $to, $reply_to, $subject, $text, $html)
+            $this->email_service->send($newUser, $admin, $newUser, $subject, $body, $body);
         }
 
         return $newUser;
