@@ -276,7 +276,7 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
      */
     private function createProvider(): GenericProvider
     {
-        $redirectUri = route('WordPressSsoLoginAction');
+        $redirectUri = urldecode(route('WordPressSsoLoginAction'));
         
         $config = [
             'clientId'                => $this->module->getConfig('clientId'),
