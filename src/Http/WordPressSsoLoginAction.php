@@ -373,7 +373,7 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
                 error_log('[WordPress SSO] Redirect URI (URL encoded): ' . urlencode($redirectUri));
                 error_log('[WordPress SSO] Redirect URI (raw bytes): ' . bin2hex($redirectUri));
                 error_log('[WordPress SSO] Error from WordPress: ' . $errorMessage);
-                error_log('[WordPress SSO] SOLUTION: Check http://localhost/svajana/check-oauth-config.php');
+                error_log('[WordPress SSO] SOLUTION: Verify Redirect URI matches your WordPress OAuth client settings.');
                 error_log('[WordPress SSO] Make sure the redirect URI in WordPress EXACTLY matches the one above');
                 error_log('=== END DEBUG ===');
             }

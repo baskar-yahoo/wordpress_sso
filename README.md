@@ -76,12 +76,12 @@ Production-ready Single Sign-On module for webtrees using WordPress as the ident
 2. Go to WordPress Admin → Users → Applications → Add New
 3. Enter:
    - **Client Name:** webtrees-sso
-   - **Redirect URI:** `http://yourdomain.com/webtrees/index.php?route=%2Fwordpress-sso%2Fcallback`
+   - **Redirect URI:** `http://yourdomain.com/webtrees/index.php?route=/wordpress-sso/callback`
      
-     ⚠️ **CRITICAL**: Use URL-encoded slashes (`%2F`) instead of forward slashes (`/`)
+     **Note**: Use standard forward slashes (`/`). The module handles decoding automatically.
      
-     ✅ **Correct**: `route=%2Fwordpress-sso%2Fcallback`  
-     ❌ **Wrong**: `route=/wordpress-sso/callback`
+     ✅ **Correct**: `route=/wordpress-sso/callback`
+     ❌ **Avoid**: `route=%2Fwordpress-sso%2Fcallback` (Double encoding may occur)
      
 4. Select Grant Types: **Authorization Code**
 5. Save and note down:
@@ -136,7 +136,7 @@ You have two configuration options:
    - PKCE Method: S256
    - Sync Email: ✓
    - Debug Logging: (only for troubleshooting)
-5. Copy the **Callback URL** shown at the bottom (e.g., `https://your-site.com/webtrees/index.php?route=%2Fwordpress-sso%2Fcallback`)
+5. Copy the **Callback URL** shown at the bottom (e.g., `https://your-site.com/webtrees/index.php?route=/wordpress-sso/callback`)
 6. Go back to WordPress OAuth client configuration and paste it into the Redirect URI field
 7. Click **Save**
 
@@ -147,7 +147,7 @@ You have two configuration options:
 ### Security Checklist
 
 - [ ] **HTTPS Enabled** - SSL/TLS certificate installed and working
-- [ ] **Redirect URI** uses URL-encoded slashes (`%2F`)
+- [ ] **Redirect URI** uses standard slashes (`/`)
 - [ ] **PKCE Enabled** - Set `WordPress_SSO_pkceMethod='S256'`
 - [ ] **Debug Logging Disabled** - Set `WordPress_SSO_debugEnabled='0'`
 - [ ] **Strong Client Secret** - Use auto-generated secret from WordPress
@@ -296,11 +296,11 @@ chown -R www-data:www-data vendor/
 1. Check your WordPress OAuth client configuration
 2. Verify redirect URI is **exactly**:
    ```
-   https://your-site.com/webtrees/index.php?route=%2Fwordpress-sso%2Fcallback
+   https://your-site.com/webtrees/index.php?route=/wordpress-sso/callback
    ```
 3. Enable debug logging: `WordPress_SSO_debugEnabled='1'`
 4. Check error logs for exact URI being sent
-5. See [OAUTH_REDIRECT_URI_FIX.md](OAUTH_REDIRECT_URI_FIX.md) for detailed explanation
+5. *Note: As of v2.0.0, manual encoding is no longer required.*
 
 ### User Creation Fails
 

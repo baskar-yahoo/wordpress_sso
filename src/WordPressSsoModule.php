@@ -157,7 +157,7 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
     {
         $this->layout = 'layouts/administration';
 
-        $callback_url = route('WordPressSsoLoginAction');
+        $callback_url = urldecode(route('WordPressSsoLoginAction'));
         
         $params = [
             'title' => $this->title(),
