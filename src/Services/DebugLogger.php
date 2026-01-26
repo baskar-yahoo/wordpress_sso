@@ -27,14 +27,30 @@ class DebugLogger
             return;
         }
 
-        $log_message = $this->prefix . ' ' . $message;
+        $log_message = date('Y-m-d H:i:s') . ' ' . $this->prefix . ' ' . $message;
 
         if (!empty($context)) {
             $log_message .= ' | Context: ' . json_encode($context, JSON_PRETTY_PRINT);
         }
 
-        // Use PHP's error_log() to write to the web server's error log
-        error_log($log_message);
+        $log_message .= "\n";
+
+        // Calculate path to sso_debug.txt
+        // Current dir: .../wordpress_sso/src/Services
+        // Webtrees root: .../familytree
+        $service_dir = __DIR__;
+        $src_dir = dirname($service_dir);
+        $module_dir = dirname($src_dir);
+        $modules_dir = dirname($module_dir);
+        $webtrees_dir = dirname($modules_dir);
+        
+        $log_file = $webtrees_dir . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'sso_debug.txt';
+
+        // Write to file, attempt to append
+        @file_put_contents($log_file, $log_message, FILE_APPEND);
+        
+        // Also log to error_log for fallback visibility in system logs
+        // error_log($log_message); 
     }
 
     /**

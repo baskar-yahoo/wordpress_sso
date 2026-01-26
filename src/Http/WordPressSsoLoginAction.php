@@ -141,9 +141,6 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
                 $this->logger->log('PKCE code loaded from session');
             }
             
-            // Check WordPress OAuth configuration (for debugging)
-            $this->checkWordPressOAuthConfig();
-            
             // Token exchange
             $accessToken = $this->exchangeCodeForToken($provider, $queryParams['code']);
             
@@ -199,8 +196,14 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             );
             $this->logger->log('Token exchange failed', [
                 'error' => $e->getMessage(),
+                'redirect_uri_sent' => route('WordPressSsoLoginAction'),
                 'code' => substr($queryParams['code'] ?? '', 0, 8) . '...'
             ]);
+            
+            // Log the exact URI for debugging
+            $this->logger->log('DEBUG: WEBTREES SENT THIS REDIRECT URI: ' . route('WordPressSsoLoginAction'));
+            $this->logger->log('DEBUG: Ensure WordPress OAuth Client is set to EXACTLY this value.');
+            
             $this->cleanupSession();
             return redirect(route(HomePage::class));
             
@@ -246,51 +249,7 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
         }
     }
 
-    /**
-     * Check WordPress OAuth client configuration (debugging)
-     */
-    private function checkWordPressOAuthConfig(): void
-    {
-        try {
-            $clientId = $this->module->getConfig('clientId');
-            
-            // Try to query WordPress database for OAuth client config
-            $wpDbName = 'svajana_wp'; // Your WordPress database
-            $query = "SELECT client_id, redirect_uri, name FROM {$wpDbName}.wp_oauth_clients WHERE client_id = ?";
-            
-            $result = DB::table(DB::raw($wpDbName . '.wp_oauth_clients'))
-                ->where('client_id', '=', $clientId)
-                ->select(['client_id', 'redirect_uri', 'name'])
-                ->first();
-            
-            if ($result) {
-                $this->logger->log('WordPress OAuth Client Configuration Found', [
-                    'client_id' => $result->client_id,
-                    'redirect_uri' => $result->redirect_uri,
-                    'name' => $result->name,
-                ]);
-                
-                error_log('[WordPress SSO] WordPress OAuth Client Config:');
-                error_log('[WordPress SSO] Redirect URI in WordPress DB: ' . $result->redirect_uri);
-                error_log('[WordPress SSO] Expected Redirect URI: ' . route('WordPressSsoLoginAction'));
-                
-                if ($result->redirect_uri !== route('WordPressSsoLoginAction')) {
-                    error_log('[WordPress SSO] *** MISMATCH DETECTED ***');
-                    error_log('[WordPress SSO] DB has: ' . $result->redirect_uri);
-                    error_log('[WordPress SSO] We send: ' . route('WordPressSsoLoginAction'));
-                }
-            } else {
-                $this->logger->log('WordPress OAuth Client NOT found in database', [
-                    'client_id' => $clientId,
-                ]);
-            }
-        } catch (\Exception $e) {
-            $this->logger->log('Could not check WordPress OAuth config', [
-                'error' => $e->getMessage(),
-            ]);
-            error_log('[WordPress SSO] Could not check WordPress OAuth config: ' . $e->getMessage());
-        }
-    }
+
     
     /**
      * Validate module configuration

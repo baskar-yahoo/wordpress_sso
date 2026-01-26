@@ -4,6 +4,8 @@ use Fisharebest\Webtrees\I18N;
 
 /** @var \Fisharebest\Webtrees\View $this */
 
+$disabled_attr = $config_location === 'config.ini.php' ? 'disabled' : '';
+
 ?>
 
 <div class="card">
@@ -14,7 +16,7 @@ use Fisharebest\Webtrees\I18N;
         <div class="alert alert-info">
             <strong><?= I18N::translate('Configuration Source:') ?></strong> config.ini.php
             <br>
-            <small><?= I18N::translate('Settings are loaded from config.ini.php. Changes made here will be saved to the database but will be overridden by config.ini.php values.') ?></small>
+            <small><?= I18N::translate('Settings are loaded from config.ini.php. The fields below are locked because file-based configuration takes precedence over database settings.') ?></small>
         </div>
         <?php else: ?>
         <div class="alert alert-warning">
@@ -33,7 +35,7 @@ use Fisharebest\Webtrees\I18N;
                 <label class="col-sm-3 col-form-label"><?= I18N::translate('Enable Seamless SSO') ?></label>
                 <div class="col-sm-9">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="sso_enabled" name="sso_enabled" value="1" <?= $sso_enabled ? 'checked' : '' ?>>
+                        <input type="checkbox" class="form-check-input" id="sso_enabled" name="sso_enabled" value="1" <?= $sso_enabled ? 'checked' : '' ?> <?= $disabled_attr ?>>
                         <label class="form-check-label" for="sso_enabled"><?= I18N::translate('Redirect all unauthenticated users to WordPress for login.') ?></label>
                     </div>
                 </div>
@@ -43,7 +45,7 @@ use Fisharebest\Webtrees\I18N;
                 <label class="col-sm-3 col-form-label"><?= I18N::translate('Allow New User Creation') ?></label>
                 <div class="col-sm-9">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="sso_allow_creation" name="sso_allow_creation" value="1" <?= $sso_allow_creation ? 'checked' : '' ?>>
+                        <input type="checkbox" class="form-check-input" id="sso_allow_creation" name="sso_allow_creation" value="1" <?= $sso_allow_creation ? 'checked' : '' ?> <?= $disabled_attr ?>>
                         <label class="form-check-label" for="sso_allow_creation"><?= I18N::translate('Automatically create new user accounts for first-time SSO logins. New accounts will require admin approval.') ?></label>
                     </div>
                 </div>
@@ -55,21 +57,21 @@ use Fisharebest\Webtrees\I18N;
             <div class="form-group row">
                 <label for="sso_client_id" class="col-sm-3 col-form-label"><?= I18N::translate('Client ID') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_client_id" name="sso_client_id" value="<?= e($sso_client_id) ?>">
+                    <input type="text" class="form-control" id="sso_client_id" name="sso_client_id" value="<?= e($sso_client_id) ?>" <?= $disabled_attr ?>>
                 </div>
             </div>
 
             <div class="form-group row">
                 <label for="sso_client_secret" class="col-sm-3 col-form-label"><?= I18N::translate('Client Secret') ?></label>
                 <div class="col-sm-9">
-                    <input type="password" class="form-control" id="sso_client_secret" name="sso_client_secret" value="<?= e($sso_client_secret) ?>">
+                    <input type="password" class="form-control" id="sso_client_secret" name="sso_client_secret" value="<?= e($sso_client_secret) ?>" <?= $disabled_attr ?>>
                 </div>
             </div>
 
             <div class="form-group row">
                 <label for="sso_url_authorize" class="col-sm-3 col-form-label"><?= I18N::translate('Authorization URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_url_authorize" name="sso_url_authorize" value="<?= e($sso_url_authorize) ?>">
+                    <input type="text" class="form-control" id="sso_url_authorize" name="sso_url_authorize" value="<?= e($sso_url_authorize) ?>" <?= $disabled_attr ?>>
                     <small class="form-text text-muted">Example: https://your-site.com/oauth/authorize</small>
                 </div>
             </div>
@@ -77,7 +79,7 @@ use Fisharebest\Webtrees\I18N;
             <div class="form-group row">
                 <label for="sso_url_access_token" class="col-sm-3 col-form-label"><?= I18N::translate('Access Token URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_url_access_token" name="sso_url_access_token" value="<?= e($sso_url_access_token) ?>">
+                    <input type="text" class="form-control" id="sso_url_access_token" name="sso_url_access_token" value="<?= e($sso_url_access_token) ?>" <?= $disabled_attr ?>>
                     <small class="form-text text-muted">Example: https://your-site.com/oauth/token</small>
                 </div>
             </div>
@@ -85,7 +87,7 @@ use Fisharebest\Webtrees\I18N;
             <div class="form-group row">
                 <label for="sso_url_resource_owner_details" class="col-sm-3 col-form-label"><?= I18N::translate('Resource Owner Details URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_url_resource_owner_details" name="sso_url_resource_owner_details" value="<?= e($sso_url_resource_owner_details) ?>">
+                    <input type="text" class="form-control" id="sso_url_resource_owner_details" name="sso_url_resource_owner_details" value="<?= e($sso_url_resource_owner_details) ?>" <?= $disabled_attr ?>>
                     <small class="form-text text-muted">Example: https://your-site.com/oauth/me</small>
                 </div>
             </div>
@@ -93,7 +95,7 @@ use Fisharebest\Webtrees\I18N;
             <div class="form-group row">
                 <label for="sso_url_logout" class="col-sm-3 col-form-label"><?= I18N::translate('Logout URL') ?></label>
                 <div class="col-sm-9">
-                    <input type="text" class="form-control" id="sso_url_logout" name="sso_url_logout" value="<?= e($sso_url_logout) ?>">
+                    <input type="text" class="form-control" id="sso_url_logout" name="sso_url_logout" value="<?= e($sso_url_logout) ?>" <?= $disabled_attr ?>>
                     <small class="form-text text-muted"><?= I18N::translate('The URL to redirect to for Single Log-Out.') ?> Example: https://your-site.com/wp-login.php?action=logout</small>
                 </div>
             </div>
@@ -104,7 +106,7 @@ use Fisharebest\Webtrees\I18N;
             <div class="form-group row">
                 <label for="sso_pkce_method" class="col-sm-3 col-form-label"><?= I18N::translate('PKCE Method') ?></label>
                 <div class="col-sm-9">
-                    <select class="form-control" id="sso_pkce_method" name="sso_pkce_method">
+                    <select class="form-control" id="sso_pkce_method" name="sso_pkce_method" <?= $disabled_attr ?>>
                         <option value="S256" <?= $sso_pkce_method === 'S256' ? 'selected' : '' ?>>S256 (Recommended)</option>
                         <option value="plain" <?= $sso_pkce_method === 'plain' ? 'selected' : '' ?>>Plain</option>
                         <option value="" <?= $sso_pkce_method === '' ? 'selected' : '' ?>>Disabled</option>
@@ -120,7 +122,7 @@ use Fisharebest\Webtrees\I18N;
                 <label class="col-sm-3 col-form-label"><?= I18N::translate('Sync Email from WordPress') ?></label>
                 <div class="col-sm-9">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="sso_sync_email" name="sso_sync_email" value="1" <?= $sso_sync_email ? 'checked' : '' ?>>
+                        <input type="checkbox" class="form-check-input" id="sso_sync_email" name="sso_sync_email" value="1" <?= $sso_sync_email ? 'checked' : '' ?> <?= $disabled_attr ?>>
                         <label class="form-check-label" for="sso_sync_email"><?= I18N::translate('Update user email from WordPress on each login.') ?></label>
                     </div>
                 </div>
@@ -130,7 +132,7 @@ use Fisharebest\Webtrees\I18N;
                 <label class="col-sm-3 col-form-label"><?= I18N::translate('Debug Logging') ?></label>
                 <div class="col-sm-9">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="sso_debug_enabled" name="sso_debug_enabled" value="1" <?= $sso_debug_enabled ? 'checked' : '' ?>>
+                        <input type="checkbox" class="form-check-input" id="sso_debug_enabled" name="sso_debug_enabled" value="1" <?= $sso_debug_enabled ? 'checked' : '' ?> <?= $disabled_attr ?>>
                         <label class="form-check-label" for="sso_debug_enabled"><?= I18N::translate('Enable detailed debug logging (for troubleshooting only).') ?></label>
                     </div>
                     <small class="form-text text-muted"><?= I18N::translate('Debug logs will appear in Control Panel → Website logs. Disable in production for performance.') ?></small>
@@ -176,7 +178,12 @@ use Fisharebest\Webtrees\I18N;
 
             <div class="form-group row">
                 <div class="offset-sm-3 col-sm-9">
-                    <button type="submit" class="btn btn-primary"><?= I18N::translate('Save') ?></button>
+                    <?php if ($disabled_attr): ?>
+                        <button type="button" class="btn btn-secondary" disabled><?= I18N::translate('Managed in config.ini.php') ?></button>
+                        <small class="d-block mt-2 text-muted"><?= I18N::translate('To edit settings, update the config.ini.php file directly.') ?></small>
+                    <?php else: ?>
+                        <button type="submit" class="btn btn-primary"><?= I18N::translate('Save') ?></button>
+                    <?php endif; ?>
                     <a href="<?= e($callback_url) ?>" class="btn btn-secondary" target="_blank"><?= I18N::translate('Test OAuth Flow') ?></a>
                 </div>
             </div>
