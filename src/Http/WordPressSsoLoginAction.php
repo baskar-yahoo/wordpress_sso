@@ -532,7 +532,7 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             . I18N::translate('Email') . ': ' . $newUser->email() . "\n\n"
             . I18N::translate('You can approve this user in the webtrees control panel under \'Users\'.');
 
-        foreach ($this->user_service->getAdmins() as $admin) {
+        foreach ($this->user_service->administrators() as $admin) {
             $this->email_service->send($admin, $subject, $body);
         }
 
