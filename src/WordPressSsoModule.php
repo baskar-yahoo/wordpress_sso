@@ -81,6 +81,9 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
 
         // Replace the default logout handler with our own
         Registry::container()->set(Logout::class, Registry::container()->get(WordPressSsoLogout::class));
+
+        // Register as middleware to handle auto-login
+        Registry::middlewareFactory()->add($this);
     }
 
     /**
