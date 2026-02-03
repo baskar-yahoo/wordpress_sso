@@ -202,12 +202,12 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             );
             $this->logger->log('Token exchange failed', [
                 'error' => $e->getMessage(),
-                'redirect_uri_sent' => route('WordPressSsoLoginAction'),
+                'redirect_uri_sent' => route(self::class),
                 'code' => substr($queryParams['code'] ?? '', 0, 8) . '...'
             ]);
 
             // Log the exact URI for debugging
-            $this->logger->log('DEBUG: WEBTREES SENT THIS REDIRECT URI: ' . route('WordPressSsoLoginAction'));
+            $this->logger->log('DEBUG: WEBTREES SENT THIS REDIRECT URI: ' . route(self::class));
             $this->logger->log('DEBUG: Ensure WordPress OAuth Client is set to EXACTLY this value.');
 
             $this->cleanupSession();
@@ -278,7 +278,7 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
      */
     private function createProvider(): GenericProvider
     {
-        $redirectUri = urldecode(route('WordPressSsoLoginAction'));
+        $redirectUri = urldecode(route(self::class));
 
         $config = [
             'clientId'                => $this->module->getConfig('clientId'),
@@ -368,7 +368,7 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
 
             // If it's a redirect_uri_mismatch error, log detailed debugging info
             if (strpos($errorMessage, 'redirect_uri_mismatch') !== false) {
-                $redirectUri = route('WordPressSsoLoginAction');
+                $redirectUri = route(self::class);
                 error_log('=== REDIRECT URI MISMATCH DEBUG ===');
                 error_log('[WordPress SSO] Redirect URI sent: "' . $redirectUri . '"');
                 error_log('[WordPress SSO] Redirect URI length: ' . strlen($redirectUri));

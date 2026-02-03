@@ -3,6 +3,7 @@
 namespace Webtrees\WordPressSso;
 
 use Fisharebest\Webtrees\Auth;
+use Fisharebest\Webtrees\Http\RequestHandlers\HomePage;
 use Fisharebest\Webtrees\Http\RequestHandlers\Logout;
 use Fisharebest\Webtrees\Http\ViewResponseTrait;
 use Fisharebest\Webtrees\I18N;
@@ -18,6 +19,7 @@ use Fisharebest\Webtrees\Validator;
 use Fisharebest\Webtrees\View;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Webtrees\WordPressSso\Http\WordPressSsoHomePage;
 use Webtrees\WordPressSso\Http\WordPressSsoLoginAction;
 use Webtrees\WordPressSso\Http\WordPressSsoLogout;
 
@@ -76,14 +78,14 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
 
         // Register our custom login and logout handlers
         $router = Registry::routeFactory()->routeMap();
-        $router->get('WordPressSsoLoginAction', self::SSO_CALLBACK_ROUTE)
+        $router->get(WordPressSsoLoginAction::class, self::SSO_CALLBACK_ROUTE)
             ->handler(WordPressSsoLoginAction::class);
 
         // Replace the default logout handler with our own
         Registry::container()->set(Logout::class, Registry::container()->get(WordPressSsoLogout::class));
-
-        // Register as middleware to handle auto-login
-        Registry::middlewareFactory()->add($this);
+        
+        // Replace the default homepage handler with our own to trigger auto-login
+        Registry::container()->set(HomePage::class, Registry::container()->get(WordPressSsoHomePage::class));
     }
 
     /**
@@ -150,7 +152,7 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
                 $debug_log = $webtrees_dir . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'sso_debug.txt';
                 @file_put_contents($debug_log, "SSO Debug: Redirecting to Login Action\n", FILE_APPEND);
             }
-            return redirect(route('WordPressSsoLoginAction'));
+            return redirect(route(WordPressSsoLoginAction::class));
         }
 
         return $this->next->handle($request);
@@ -160,7 +162,7 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
     {
         $this->layout = 'layouts/administration';
 
-        $callback_url = urldecode(route('WordPressSsoLoginAction'));
+        $callback_url = urldecode(route(WordPressSsoLoginAction::class));
         
         $params = [
             'title' => $this->title(),
