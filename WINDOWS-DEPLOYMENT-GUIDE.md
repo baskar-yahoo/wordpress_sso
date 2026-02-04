@@ -41,12 +41,32 @@ Get-ChildItem *.backup*, *.zip | Select-Object Name, LastWriteTime, Length
 
 ---
 
+## Quick Start Files Summary
+
+**All required files are in the wordpress_sso module folder:**
+
+1. **PHP Files** (3 files - copy to src/ and src/Http/)
+   - `WordPressSsoModule.php` → Replace existing
+   - `WordPressSsoLoginAction.php` → Replace existing  
+   - `WordPressSsoHomePage.php` → New file
+
+2. **.htaccess Files** (2 files - copy to WordPress and Webtrees roots)
+   - `.htaccess-svajana-WINDOWS` → WordPress root
+   - `.htaccess-familytree-WINDOWS` → Webtrees root
+
+3. **Documentation** (Reference as needed)
+   - `WINDOWS-DEPLOYMENT-GUIDE.md` → This file
+   - `SECURITY-QA-SUMMARY.md` → Security questions answered
+   - `SECURITY-ANALYSIS.md` → Complete security details
+
+---
+
 ## Deployment Steps
 
 ### Step 1: Upload Modified PHP Files
 
-**Source Files:** From your Downloads folder or development location  
-**Destination:** `C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\`
+**Source:** `C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\` (module folder)  
+**Destination:** `C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\src\`
 
 #### Using File Explorer:
 
@@ -84,36 +104,76 @@ Get-ChildItem "$module\src" -Recurse -Include *.php | Select-Object Name, LastWr
 
 ### Step 2: Deploy WordPress .htaccess
 
-**File:** `.htaccess-svajana` (from Downloads)  
+**Source File:** `.htaccess-svajana-WINDOWS` (in wordpress_sso module folder)  
 **Destination:** `C:\xampp\htdocs\svajana\.htaccess`
 
+**What this does:**
+- Maintains WordPress rewrite rules
+- **Adds cache bypass for authenticated users** (critical for SSO)
+- Preserves LiteSpeed Cache configuration
+- Sets cache-control headers for WordPress-authenticated users
+
+**PowerShell Method:**
 ```powershell
-# PowerShell method
+# Navigate to WordPress root
 cd C:\xampp\htdocs\svajana
 
-# Backup current .htaccess (if not already done)
+# Backup current .htaccess
 Copy-Item .htaccess ".htaccess.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
-# Copy new .htaccess
-Copy-Item "C:\Users\DTE5232\Downloads\.htaccess-svajana" .htaccess -Force
+# Copy new .htaccess from module folder
+$modulePath = "familytree\modules_v4\wordpress_sso"
+Copy-Item "$modulePath\.htaccess-svajana-WINDOWS" .htaccess -Force
 
-# Verify content
-Get-Content .htaccess | Select-Object -First 20
+# Verify content - should see "BEGIN WordPress SSO Integration"
+Get-Content .htaccess | Select-String "WordPress SSO"
 ```
 
-**Or using File Explorer:**
-- Navigate to `C:\Users\DTE5232\Downloads`
-- Copy `.htaccess-svajana`
-- Navigate to `C:\xampp\htdocs\svajana`
-- Paste and rename to `.htaccess` (replace existing)
-
----
-
-### Step 3: Deploy Webtrees .htaccess
-
-**File:** `.htaccess-familytree` (from Downloads)  
+**File Explorer Method:**
+1. Navigate to: `C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\`
+2.Source File:** `.htaccess-familytree-WINDOWS` (in wordpress_sso module folder)  
 **Destination:** `C:\xampp\htdocs\svajana\familytree\.htaccess`
 
+**What this does:**
+- **Replaces any blocking rules** (if present)
+- **Adds cache bypass for BOTH WordPress AND Webtrees authenticated users**
+- Includes proper URL rewriting for Webtrees
+- Adds security headers
+- Documents data/ folder protection
+
+**PowerShell Method:**
+```powershell
+# Navigate to Webtrees root
+cd C:\xampp\htdocs\svajana\familytree
+
+# Backup current .htaccess
+Copy-Item .htaccess ".htaccess.backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+
+# Copy new .htaccess from module folder
+$modulePath = "modules_v4\wordpress_sso"
+Copy-Item "$modulePath\.htaccess-familytree-WINDOWS" .htaccess -Force
+
+# Verify content - should see "Cache Bypass for Authenticated Users"
+Get-Content .htaccess | Select-String "Cache Bypass"
+```
+
+**File Explorer Method:**
+1. Navigate to: `C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\`
+2. Find file: `.htaccess-familytree-WINDOWS`
+3. Copy this file
+4. Navigate to: `C:\xampp\htdocs\svajana\familytree\`
+5. **Backup existing:** Rename `.htaccess` to `.htaccess.backup`
+6. Paste copied file
+7. Rename pasted file to: `.htaccess` (remove `-familytree-WINDOWS`)
+
+**Critical Notes:**
+- This file includes cache bypass for BOTH authentication systems:
+  - WordPress users (wordpress_logged_in_ cookie)
+  - Webtrees users (PHPSESSID cookie)
+- Works with both LiteSpeed and standard Apache (XAMPP)
+- The file must be named EXACTLY `.htaccess`
+- Enable "Show hidden files" if you can't see it:
+  - File Explorer → View → Options → View tab → Show hidden fil
 ```powershell
 # PowerShell method
 cd C:\xampp\htdocs\svajana\familytree
@@ -236,20 +296,105 @@ Start-Sleep -Seconds 3
 ```
 
 ---
+Verify Deployment
 
-### Step 7: Check Debug Logs
+After deploying all files, verify they're in the correct locations:
 
 ```powershell
-# View Webtrees SSO debug log (if debug enabled)
-Get-Content C:\xampp\htdocs\svajana\familytree\data\sso_debug.txt -Tail 50
+# Check PHP files
+Test-Path C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\src\WordPressSsoModule.php
+Test-Path C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\src\Http\WordPressSsoLoginAction.php
+Test-Path C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\src\Http\WordPressSsoHomePage.php
 
-# View Apache error log
-Get-Content C:\xampp\apache\logs\error.log -Tail 50
+# Check .htaccess files
+Test-Path C:\xampp\htdocs\svajana\.htaccess
+Test-Path C:\xampp\htdocs\svajana\familytree\.htaccess
 
-# View PHP error log
-Get-Content C:\xampp\php\logs\php_error_log.txt -Tail 50
+# Verify .htaccess content
+Get-Content C:\xampp\htdocs\svajana\.htaccess | Select-String "WordPress SSO"
+Get-Content C:\xampp\htdocs\svajana\familytree\.htaccess | Select-String "Cache Bypass"
+
+# All tests should return TRUE or show matching content
+```
+cookies not detected
+
+**Fix:**
+```powershell
+# 1. Verify .htaccess has BOTH cookie checks
+Get-Content C:\xampp\htdocs\svajana\familytree\.htaccess | Select-String "wordpress_logged_in|PHPSESSID"
+
+# Should return TWO matches:
+# RewriteCond %{HTTP_COOKIE} wordpress_logged_in_ [NC]
+# RewriteCond %{HTTP_COOKIE} PHPSESSID [NC]
+
+# 2. Clear all browser cookies for localhost
+#    F12 → Application → Cookies → localhost → Delete all
+
+# 3. Clear browser cache (Ctrl+Shift+Delete)
+
+# 4. Restart Apache (XAMPP Control Panel)
+
+# 5. Test in incognito window
+#    - Login to WordPress
+#    - Navigate to Webtrees
+#    - Should auto-redirect to SSO
 ```
 
+### Issue: .htaccess Not Working / Ignored
+
+**Cause:** Apache not configured to use .htaccess files
+
+**Fix:**
+```powershell
+# Check Apache configuration
+notepad C:\xampp\apache\conf\httpd.conf
+
+# Search for "AllowOverride" (Ctrl+F)
+# Should have:
+# <Directory "C:/xampp/htdocs">
+#     AllowOverride All
+#     Require all granted
+# </Directory>
+
+# If set to "AllowOverride None", change to "AllowOverride All"
+# Save and restart Apache
+```
+
+### Issue: Cache Headers Not Appearing
+
+**Cause:** mod_headers not enabled in Apache
+
+**Fix:**
+```powershell
+# Edit Apache config
+notepad C:\xampp\apache\conf\httpd.conf
+
+# Search for: LoadModule headers_module
+# Uncomment this line (remove # at start):
+# LoadModule headers_module modules/mod_headers.so
+
+# Save and restart Apache
+
+# Verify it's working:
+# 1. Login to WordPress
+# 2. Open Developer Tools (F12)
+# 3. Navigate to Webtrees
+# 4. Check Response Headers
+# 5. Should see: Cache-Control: no-cache, no-store, must-revalidat
+## Troubleshooting
+
+### Issue: "Class WordPressSsoHomePage not found"
+
+**Cause:** File not copied or in wrong location
+
+**Fix:**
+```powershell
+# Verify file exists
+Test-Path C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso\src\Http\WordPressSsoHomePage.php
+
+# If FALSE, copy from module folder again
+$modulePath = "C:\xampp\htdocs\svajana\familytree\modules_v4\wordpress_sso"
+Copy-Item "$modulePath\WordPressSsoHomePage.php" "$modulePath
 **What to look for:**
 - ✅ "Login successful" entries
 - ✅ "User data retrieved from WordPress"

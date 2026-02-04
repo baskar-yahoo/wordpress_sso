@@ -1,0 +1,57 @@
+# BEGIN LSCACHE
+## LITESPEED WP CACHE PLUGIN - Do not edit the contents of this block! ##
+<IfModule LiteSpeed>
+RewriteEngine on
+CacheLookup on
+RewriteRule .* - [E=Cache-Control:no-autoflush]
+RewriteRule litespeed/debug/.*\.log$ - [F,L]
+RewriteRule \.litespeed_conf\.dat - [F,L]
+
+### marker ASYNC start ###
+RewriteCond %{REQUEST_URI} /wp-admin/admin-ajax\.php
+RewriteCond %{QUERY_STRING} action=async_litespeed
+RewriteRule .* - [E=noabort:1]
+### marker ASYNC end ###
+
+### marker DROPQS start ###
+CacheKeyModify -qs:fbclid
+CacheKeyModify -qs:gclid
+CacheKeyModify -qs:utm*
+CacheKeyModify -qs:_ga
+### marker DROPQS end ###
+
+</IfModule>
+## LITESPEED WP CACHE PLUGIN - Do not edit the contents of this block! ##
+# END LSCACHE
+# BEGIN NON_LSCACHE
+## LITESPEED WP CACHE PLUGIN - Do not edit the contents of this block! ##
+## LITESPEED WP CACHE PLUGIN - Do not edit the contents of this block! ##
+# END NON_LSCACHE
+
+# BEGIN WordPress
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteBase /svajana/
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /svajana/index.php [L]
+</IfModule>
+# END WordPress
+
+# BEGIN WordPress SSO Integration - Windows Development
+# Cache Bypass for Authenticated Users (Required for SSO with Webtrees)
+<IfModule mod_headers.c>
+    # Detect WordPress authentication cookie
+    SetEnvIf Cookie "wordpress_logged_in_" wp_authenticated
+    
+    # Prevent caching for authenticated users (critical for SSO with Webtrees)
+    # This ensures users see fresh content when navigating to Webtrees subfolder
+    Header set Cache-Control "no-cache, no-store, must-revalidate" env=wp_authenticated
+    Header set Pragma "no-cache" env=wp_authenticated
+    Header set Expires "0" env=wp_authenticated
+</IfModule>
+# END WordPress SSO Integration
+
+SetEnv SVAJANA_DEBUG 1

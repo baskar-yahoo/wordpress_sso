@@ -10,6 +10,7 @@ use Fisharebest\Webtrees\Http\RequestHandlers\HomePage;
 use Fisharebest\Webtrees\I18N;
 use Fisharebest\Webtrees\Log;
 use Fisharebest\Webtrees\Services\EmailService;
+use Fisharebest\Webtrees\Services\MessageService;
 use Fisharebest\Webtrees\Services\UserService;
 use Fisharebest\Webtrees\Session;
 use Fisharebest\Webtrees\User;
@@ -37,6 +38,7 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
     private UserService $user_service;
     private WordPressSsoModule $module;
     private EmailService $email_service;
+    private MessageService $message_service;
     private DebugLogger $logger;
 
     public const WP_USER_ID_PREFERENCE = 'wordpress_user_id';
@@ -44,11 +46,13 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
     public function __construct(
         UserService $user_service,
         WordPressSsoModule $module,
-        EmailService $email_service
+        EmailService $email_service,
+        MessageService $message_service
     ) {
         $this->user_service = $user_service;
         $this->module = $module;
         $this->email_service = $email_service;
+        $this->message_service = $message_service;
 
         // Initialize debug logger
         $debug_enabled = $this->module->getConfig('debugEnabled', '0') === '1';
@@ -157,10 +161,23 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
 
             // Perform login check (but don't login if not approved yet)
             if ($user->getPreference(UserInterface::PREF_IS_ACCOUNT_APPROVED) !== '1') {
+                // Set session flag to prevent SSO redirect loop
+                Session::put('sso_approval_pending', true);
+                Session::put('sso_pending_user_email', $user->email());
+                
                 FlashMessages::addMessage(
                     I18N::translate('Your account has been created and is pending administrator approval. You will be notified via email once approved.'),
-                    'success'
+                    'warning'
                 );
+                
+                $this->logger->log('Login blocked - account not approved', [
+                    'user' => $user->userName(),
+                    'email' => $user->email()
+                ]);
+                
+                // Notify administrators about pending approval
+                $this->notifyAdministratorsAboutPendingUser($user, $request);
+                
                 $this->cleanupSession();
                 return redirect(route(HomePage::class));
             }
@@ -564,4 +581,148 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
         Session::forget('oauth2pkceCode');
         Session::forget('wordpress_sso_initiating_user');
     }
+
+    /**
+     * Notify administrators about pending user approval
+     * Leverages Webtrees' existing notification system (same as native user registration)
+     * Sends both internal messages and emails to all administrators
+     * 
+     * @param UserInterface $user The user awaiting approval
+     * @param ServerRequestInterface $request The current request
+     */
+    private function notifyAdministratorsAboutPendingUser(UserInterface $user, ServerRequestInterface $request): void
+    {
+        // Check if we already notified admins for this user (prevent duplicate notifications)
+        $notification_sent_pref = 'sso_admin_notified';
+        if ($user->getPreference($notification_sent_pref) === '1') {
+            $this->logger->log('Admin notification already sent for this user, skipping', [
+                'user' => $user->userName()
+            ]);
+            return;
+        }
+
+        // Get WordPress user ID if available
+        $wp_user_id = $user->getPreference(self::WP_USER_ID_PREFERENCE, 'Unknown');
+        
+        // Get client IP and user agent for security tracking
+        $ip_address = $request->getAttribute('client-ip', 'Unknown');
+        $user_agent = $request->getHeaderLine('User-Agent') ?: 'Unknown';
+        
+        // Prepare notification details
+        $username = $user->userName();
+        $email = $user->email();
+        $real_name = $user->realName();
+        $timestamp = date('Y-m-d H:i:s');
+        
+        // Build message subject
+        $subject = I18N::translate('New user registration - approval needed');
+        
+        // Build message body (plain text)
+        $message_text = I18N::translate('A new user has registered via WordPress Single Sign-On and requires approval.') . "\n\n"
+            . I18N::translate('User Details:') . "\n"
+            . '• ' . I18N::translate('Username') . ': ' . $username . "\n"
+            . '• ' . I18N::translate('Email') . ': ' . $email . "\n"
+            . '• ' . I18N::translate('Real name') . ': ' . $real_name . "\n"
+            . '• ' . I18N::translate('WordPress User ID') . ': ' . $wp_user_id . "\n"
+            . '• ' . I18N::translate('Login Attempt Time') . ': ' . $timestamp . "\n"
+            . '• ' . I18N::translate('IP Address') . ': ' . $ip_address . "\n\n"
+            . I18N::translate('The user has attempted to login via WordPress SSO but was blocked because their account has not been approved yet.') . "\n\n"
+            . I18N::translate('To approve this user:') . "\n"
+            . '1. ' . I18N::translate('Go to Control Panel → User Administration') . "\n"
+            . '2. ' . I18N::translate('Find user: %s', $username) . "\n"
+            . '3. ' . I18N::translate('Click the user to edit') . "\n"
+            . '4. ' . I18N::translate('Check "Approved" and save') . "\n\n"
+            . I18N::translate('Once approved, the user will be able to login automatically via WordPress SSO.');
+        
+        // Build HTML version of the message
+        $message_html = '<p><strong>' . I18N::translate('A new user has registered via WordPress Single Sign-On and requires approval.') . '</strong></p>'
+            . '<h3>' . I18N::translate('User Details:') . '</h3>'
+            . '<ul>'
+            . '<li><strong>' . I18N::translate('Username') . ':</strong> ' . e($username) . '</li>'
+            . '<li><strong>' . I18N::translate('Email') . ':</strong> ' . e($email) . '</li>'
+            . '<li><strong>' . I18N::translate('Real name') . ':</strong> ' . e($real_name) . '</li>'
+            . '<li><strong>' . I18N::translate('WordPress User ID') . ':</strong> ' . e($wp_user_id) . '</li>'
+            . '<li><strong>' . I18N::translate('Login Attempt Time') . ':</strong> ' . e($timestamp) . '</li>'
+            . '<li><strong>' . I18N::translate('IP Address') . ':</strong> ' . e($ip_address) . '</li>'
+            . '</ul>'
+            . '<p>' . I18N::translate('The user has attempted to login via WordPress SSO but was blocked because their account has not been approved yet.') . '</p>'
+            . '<h3>' . I18N::translate('To approve this user:') . '</h3>'
+            . '<ol>'
+            . '<li>' . I18N::translate('Go to Control Panel → User Administration') . '</li>'
+            . '<li>' . I18N::translate('Find user: %s', e($username)) . '</li>'
+            . '<li>' . I18N::translate('Click the user to edit') . '</li>'
+            . '<li>' . I18N::translate('Check "Approved" and save') . '</li>'
+            . '</ol>'
+            . '<p>' . I18N::translate('Once approved, the user will be able to login automatically via WordPress SSO.') . '</p>';
+
+        // Get all administrators
+        $administrators = $this->user_service->administrators();
+        $admin_count = count($administrators);
+        
+        $this->logger->log('Sending pending approval notifications to administrators', [
+            'user' => $username,
+            'email' => $email,
+            'wp_user_id' => $wp_user_id,
+            'admin_count' => $admin_count,
+            'ip_address' => $ip_address
+        ]);
+
+        $notification_success_count = 0;
+        $notification_error_count = 0;
+
+        foreach ($administrators as $admin) {
+            try {
+                // Send internal Webtrees message (visible in user's inbox)
+                $this->message_service->deliverMessage(
+                    $user,      // From: the pending user
+                    $admin,     // To: admin
+                    $subject,
+                    $message_text,
+                    '',         // No URL
+                    ''          // No recipient email (internal message only)
+                );
+
+                // Send email notification
+                $this->email_service->send(
+                    $user,          // From
+                    $admin,         // To
+                    $user,          // Reply-to
+                    $subject,
+                    $message_text,  // Plain text version
+                    $message_html   // HTML version
+                );
+
+                $notification_success_count++;
+                
+                $this->logger->log('Notification sent successfully', [
+                    'admin_email' => $admin->email(),
+                    'admin_username' => $admin->userName()
+                ]);
+
+            } catch (\Exception $e) {
+                $notification_error_count++;
+                
+                $this->logger->log('Failed to send notification to admin', [
+                    'admin_email' => $admin->email(),
+                    'error' => $e->getMessage()
+                ]);
+                
+                // Continue with other admins even if one fails
+                continue;
+            }
+        }
+
+        // Mark that we've notified admins for this user (prevent duplicate notifications)
+        $user->setPreference($notification_sent_pref, '1');
+
+        $this->logger->log('Admin notification process completed', [
+            'total_admins' => $admin_count,
+            'successful' => $notification_success_count,
+            'failed' => $notification_error_count
+        ]);
+
+        // Log the event for audit trail
+        Log::addAuthenticationLog('WordPress SSO: Pending approval notification sent to ' . $notification_success_count . ' administrator(s) for user: ' . $username);
+    }
 }
+
