@@ -31,6 +31,7 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
     use ViewResponseTrait;
 
     public const SSO_CALLBACK_ROUTE = '/wordpress-sso/callback';
+    public const SSO_LOGOUT_ROUTE = '/wordpress-sso/logout';
 
     // Constants for preference keys
     public const SSO_ENABLED = 'sso_enabled';
@@ -80,6 +81,8 @@ class WordPressSsoModule extends AbstractModule implements ModuleCustomInterface
         $router = Registry::routeFactory()->routeMap();
         $router->get(WordPressSsoLoginAction::class, self::SSO_CALLBACK_ROUTE)
             ->handler(WordPressSsoLoginAction::class);
+        $router->get(WordPressSsoLogout::class, self::SSO_LOGOUT_ROUTE)
+            ->handler(WordPressSsoLogout::class);
 
         // Replace the default logout handler with our own
         Registry::container()->set(Logout::class, Registry::container()->get(WordPressSsoLogout::class));

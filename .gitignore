@@ -83,6 +83,12 @@ site/
 /custom.ini
 /config.ini
 
+# Archive folder (local reference documentation only)
+/archive/
+
+# Scripts folder (optional testing/verification scripts)
+/scripts/
+
 # Windows specific
 *.lnk
 desktop.ini
