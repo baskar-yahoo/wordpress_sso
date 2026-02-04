@@ -2,28 +2,41 @@
 # WordPress SSO Integration - Cache Bypass Configuration
 # Production Environment: https://svajana.org/familytree
 
-# BEGIN LiteSpeed Cache Bypass for WordPress SSO
+# BEGIN LiteSpeed Cache Bypass for Authenticated Users
 <IfModule LiteSpeed>
     CacheLookup on
     RewriteEngine On
     
     # Critical: Bypass LiteSpeed cache when WordPress authentication cookie is present
-    # This ensures authenticated users get fresh content instead of cached "logged out" pages
+    # This ensures WordPress-authenticated users get fresh content
     RewriteCond %{HTTP_COOKIE} wordpress_logged_in_ [NC]
+    RewriteRule .* - [E=Cache-Control:no-cache,E=no-cache:1]
+    
+    # Also bypass cache for Webtrees-authenticated users
+    # Webtrees uses PHP session cookies (PHPSESSID or custom session name)
+    RewriteCond %{HTTP_COOKIE} PHPSESSID [NC]
     RewriteRule .* - [E=Cache-Control:no-cache,E=no-cache:1]
 </IfModule>
 # END LiteSpeed Cache Bypass
 
-# BEGIN Cache Headers for Authenticated WordPress Users
+# BEGIN Cache Headers for Authenticated Users
 <IfModule mod_headers.c>
     # Detect WordPress authentication cookie
     SetEnvIf Cookie "wordpress_logged_in_" wp_user_authenticated
     
-    # Set strict no-cache headers for authenticated users
+    # Detect Webtrees session cookie (PHP session)
+    SetEnvIf Cookie "PHPSESSID" wt_user_authenticated
+    
+    # Set strict no-cache headers for authenticated users (WordPress)
     # Prevents browser and proxy caching of authenticated content
     Header always set Cache-Control "no-cache, no-store, must-revalidate" env=wp_user_authenticated
     Header always set Pragma "no-cache" env=wp_user_authenticated
     Header always set Expires "0" env=wp_user_authenticated
+    
+    # Set strict no-cache headers for authenticated users (Webtrees)
+    Header always set Cache-Control "no-cache, no-store, must-revalidate" env=wt_user_authenticated
+    Header always set Pragma "no-cache" env=wt_user_authenticated
+    Header always set Expires "0" env=wt_user_authenticated
 </IfModule>
 # END Cache Headers
 
@@ -44,8 +57,12 @@
 # Security: Disable directory browsing
 Options -Indexes
 
-# Security: Protect sensitive files
+# Security: Protect sensitive files in root
 <FilesMatch "^(config\.ini\.php|\.git|\.env|composer\.(json|lock))$">
     Order allow,deny
     Deny from all
 </FilesMatch>
+
+# Note: The data/ folder has its own .htaccess that blocks all access
+# This is maintained by Webtrees core and should NOT be modified
+# Location: familytree/data/.htaccess contains "Deny from all"
