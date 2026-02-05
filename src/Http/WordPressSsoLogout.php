@@ -30,12 +30,19 @@ class WordPressSsoLogout extends Logout
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        // Generate a secure one-time logout token before destroying the session
+        // Generate a secure one-time logout token
         $logout_token = bin2hex(random_bytes(32));
-        Session::put('webtrees_logout_token', $logout_token);
-        Session::put('webtrees_logout_time', time());
+        $logout_time = time();
         
-        // Log the user out of webtrees (this destroys most session data)
+        // Store token in PHP native session (survives Webtrees session destruction)
+        // We need to do this BEFORE calling parent::handle() which destroys Webtrees session
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION['webtrees_logout_token'] = $logout_token;
+        $_SESSION['webtrees_logout_time'] = $logout_time;
+        
+        // Log the user out of webtrees (this destroys Webtrees session data but not PHP session)
         parent::handle($request);
 
         // Build the bridge script URL dynamically
