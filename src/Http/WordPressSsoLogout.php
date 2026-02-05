@@ -50,7 +50,8 @@ class WordPressSsoLogout extends Logout
         $session_id = session_id();
         
         // Log logout initiation with session details
-        $data_dir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'data';
+        // Path: src/Http -> src -> wordpress_sso -> modules_v4 -> familytree -> data
+        $data_dir = dirname(__DIR__, 5) . DIRECTORY_SEPARATOR . 'data';
         $log_file = $data_dir . DIRECTORY_SEPARATOR . 'sso_debug.txt';
         $log_msg = date('Y-m-d H:i:s') . " - SSO Logout: Token saved to session. Session ID: {$session_id}, Token: {$logout_token}\n";
         @file_put_contents($log_file, $log_msg, FILE_APPEND);
