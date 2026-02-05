@@ -42,12 +42,22 @@ class WordPressSsoLogout extends Logout
         $uri = $request->getUri();
         $base_url = $uri->getScheme() . '://' . $uri->getHost();
         
-        // Get the base path (handles subdirectory installations)
+        // Get Webtrees installation path (handles subdirectory installations)
+        // Example: /familytree/index.php?route=wordpress-sso/logout -> /familytree
         $request_path = $uri->getPath();
-        $base_path = preg_replace('/\/[^\/]*$/', '', $request_path); // Remove last segment
+        
+        // Extract base path by removing everything after the first path segment that contains a file or query
+        // For /familytree/index.php -> /familytree
+        // For /index.php -> /
+        if (preg_match('#^(.*?)/(index\.php|[^/]+\.php)#', $request_path, $matches)) {
+            $webtrees_base = $matches[1] ?: '/';
+        } else {
+            // Fallback: assume root installation
+            $webtrees_base = '/';
+        }
         
         // Construct the logout bridge URL with token
-        $logout_url = $base_url . '/modules_v4/wordpress_sso/sso_logout.php?token=' . urlencode($logout_token);
+        $logout_url = $base_url . $webtrees_base . '/modules_v4/wordpress_sso/sso_logout.php?token=' . urlencode($logout_token);
         
         // Debug logging if enabled
         if ($this->module->getConfig('debugEnabled', '0') === '1') {
