@@ -159,35 +159,41 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             // Email sync
             $this->syncEmail($user, $userData['user_email']);
 
-            // Perform login check (but don't login if not approved yet)
-            if ($user->getPreference(UserInterface::PREF_IS_ACCOUNT_APPROVED) !== '1') {
-                // Set session flag to prevent SSO redirect loop
+            // Always login WordPress users (authentication)
+            // Webtrees will handle authorization (what they can access) based on approval status
+            Auth::login($user);
+            Log::addAuthenticationLog('WordPress SSO Login: ' . $user->userName());
+            $user->setPreference(UserInterface::PREF_TIMESTAMP_ACTIVE, (string) time());
+
+            // Inform user of their account status if not fully approved
+            if ($user->getPreference(UserInterface::PREF_IS_EMAIL_VERIFIED) !== '1') {
+                FlashMessages::addMessage(
+                    I18N::translate('This account has not been verified. Please check your email for a verification message.'),
+                    'warning'
+                );
+                
+                $this->logger->log('User logged in but email not verified', [
+                    'user' => $user->userName(),
+                    'email' => $user->email()
+                ]);
+            } elseif ($user->getPreference(UserInterface::PREF_IS_ACCOUNT_APPROVED) !== '1') {
+                // Set session flag to prevent SSO redirect loop for unapproved users
                 Session::put('sso_approval_pending', true);
                 Session::put('sso_pending_user_email', $user->email());
                 
                 FlashMessages::addMessage(
-                    I18N::translate('Your account has been created and is pending administrator approval. You will be notified via email once approved.'),
+                    I18N::translate('Your account is pending administrator approval. You have limited access until approved. You will be notified via email once approved.'),
                     'warning'
                 );
                 
-                $this->logger->log('Login blocked - account not approved', [
+                $this->logger->log('User logged in but not approved - restricted access', [
                     'user' => $user->userName(),
                     'email' => $user->email()
                 ]);
                 
-                // Notify administrators about pending approval
+                // Notify administrators about pending approval (only once)
                 $this->notifyAdministratorsAboutPendingUser($user, $request);
-                
-                // Clean up OAuth session AFTER setting flash message
-                Session::forget('oauth2state');
-                Session::forget('oauth2pkceCode');
-                Session::forget('wordpress_sso_initiating_user');
-                
-                return redirect(route(HomePage::class));
             }
-
-            // Login
-            $this->performLogin($user);
 
             // Clean up session
             Session::forget('oauth2state');
@@ -508,69 +514,6 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
                 'new_email' => $wordpress_email
             ]);
         }
-    }
-
-    /**
-     * Perform login
-     */
-    private function performLogin(User $user): void
-    {
-        if ($user->getPreference(UserInterface::PREF_IS_EMAIL_VERIFIED) !== '1') {
-            throw new LoginException(
-                I18N::translate('This account has not been verified. Please check your email for a verification message.')
-            );
-        }
-
-        // Note: Account approval is checked earlier in handle() method (line 163)
-        // This method is only called for approved users
-
-        Auth::login($user);
-        Log::addAuthenticationLog('WordPress SSO Login: ' . Auth::user()->userName());
-        Auth::user()->setPreference(UserInterface::PREF_TIMESTAMP_ACTIVE, (string) time());
-    }
-
-    /**
-     * Find user by WordPress ID
-     */
-    private function findUserByWpId(string $wp_user_id): ?User
-    {
-        $user_id = DB::table('user_setting')
-            ->where('setting_name', self::WP_USER_ID_PREFERENCE)
-            ->where('setting_value', $wp_user_id)
-            ->value('user_id');
-
-        return $user_id ? $this->user_service->find($user_id) : null;
-    }
-
-    /**
-     * Create new user
-     */
-    private function createUser(string $user_name, string $email, string $wp_user_id): User
-    {
-        $newUser = $this->user_service->create($user_name, $user_name, $email, md5(random_bytes(32)));
-        $newUser->setPreference(self::WP_USER_ID_PREFERENCE, $wp_user_id);
-
-        $newUser->setPreference(UserInterface::PREF_IS_ACCOUNT_APPROVED, '0');
-        $newUser->setPreference(UserInterface::PREF_IS_EMAIL_VERIFIED, '1');
-
-        // Notify administrators of the new user account.
-        $subject = I18N::translate('New user registration requires approval');
-        $body = I18N::translate('A new user has registered via WordPress SSO and requires your approval.') . "\n\n"
-            . I18N::translate('Username') . ': ' . $newUser->userName() . "\n"
-            . I18N::translate('Email') . ': ' . $newUser->email() . "\n\n"
-            . I18N::translate('You can approve this user in the webtrees control panel under \'Users\'.');
-
-        foreach ($this->user_service->administrators() as $admin) {
-            $this->logger->log('Sending approval request email', [
-                'to_admin' => $admin->email(),
-                'new_user' => $newUser->userName()
-            ]);
-            
-            // EmailService::send($from, $to, $reply_to, $subject, $text, $html)
-            $this->email_service->send($newUser, $admin, $newUser, $subject, $body, $body);
-        }
-
-        return $newUser;
     }
 
     /**
