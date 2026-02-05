@@ -25,16 +25,9 @@ class WordPressSsoLogout extends Logout
         parent::handle($request);
 
         // Then, redirect to the WordPress logout URL
-        $wordPressLogoutUrl = $this->module->getPreference(WordPressSsoModule::SSO_URL_LOGOUT);
-
-        if (!empty($wordPressLogoutUrl)) {
-            // Add a redirect parameter so WordPress can send the user back to webtrees
-            $returnUrl = route(HomePage::class);
-            $wordPressLogoutUrl .= (parse_url($wordPressLogoutUrl, PHP_URL_QUERY) ? '&' : '?') . 'redirect_to=' . urlencode($returnUrl);
-
-            return redirect($wordPressLogoutUrl);
-        }
-
-        return redirect(route(HomePage::class));
+        // We use a local bridge script (sso_logout.php) located in the module folder
+        // to load WP Core and generate a nonce. This avoids the "Do you really want to log out?" prompt.
+        
+        return redirect('modules_v4/wordpress_sso/sso_logout.php');
     }
 }
