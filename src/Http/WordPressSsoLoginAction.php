@@ -178,7 +178,11 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
                 // Notify administrators about pending approval
                 $this->notifyAdministratorsAboutPendingUser($user, $request);
                 
-                $this->cleanupSession();
+                // Clean up OAuth session AFTER setting flash message
+                Session::forget('oauth2state');
+                Session::forget('oauth2pkceCode');
+                Session::forget('wordpress_sso_initiating_user');
+                
                 return redirect(route(HomePage::class));
             }
 
@@ -517,11 +521,8 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
             );
         }
 
-        if ($user->getPreference(UserInterface::PREF_IS_ACCOUNT_APPROVED) !== '1') {
-            throw new LoginException(
-                I18N::translate('This account has not been approved. Please wait for an administrator to approve it.')
-            );
-        }
+        // Note: Account approval is checked earlier in handle() method (line 163)
+        // This method is only called for approved users
 
         Auth::login($user);
         Log::addAuthenticationLog('WordPress SSO Login: ' . Auth::user()->userName());
