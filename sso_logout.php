@@ -25,6 +25,9 @@
 $session_id_provided = isset($_GET['sid']) ? $_GET['sid'] : 'none';
 log_security_event("Bridge script called - Session ID provided: {$session_id_provided}", $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
+// Log session configuration before starting
+log_security_event("Session config - save_path: " . session_save_path() . ", name: " . session_name(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+
 if (isset($_GET['sid']) && !empty($_GET['sid'])) {
     // Resume existing session with provided session ID
     session_id($_GET['sid']);
@@ -34,6 +37,13 @@ if (isset($_GET['sid']) && !empty($_GET['sid'])) {
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
     log_security_event("Session started - Current session ID: " . session_id(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    
+    // Check if session file exists
+    $session_file = session_save_path() . '/sess_' . session_id();
+    $file_exists = file_exists($session_file) ? 'YES' : 'NO';
+    $file_readable = is_readable($session_file) ? 'YES' : 'NO';
+    log_security_event("Session file exists: {$file_exists}, readable: {$file_readable}, path: {$session_file}", $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    
     log_security_event("Session data keys: " . implode(', ', array_keys($_SESSION)), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 }
 

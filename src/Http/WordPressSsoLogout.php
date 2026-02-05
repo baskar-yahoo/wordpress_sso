@@ -43,6 +43,9 @@ class WordPressSsoLogout extends Logout
             $this->logDebug("Session already active. Session ID: " . session_id());
         }
         
+        // Log session configuration
+        $this->logDebug("Session config - save_path: " . session_save_path() . ", name: " . session_name());
+        
         $_SESSION['webtrees_logout_token'] = $logout_token;
         $_SESSION['webtrees_logout_time'] = $logout_time;
         $this->logDebug("Token stored in session. Keys: " . implode(', ', array_keys($_SESSION)));
