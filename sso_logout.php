@@ -22,13 +22,19 @@
 
 // Start session to access Webtrees logout token
 // Resume the session passed from WordPressSsoLogout handler
+$session_id_provided = isset($_GET['sid']) ? $_GET['sid'] : 'none';
+log_security_event("Bridge script called - Session ID provided: {$session_id_provided}", $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+
 if (isset($_GET['sid']) && !empty($_GET['sid'])) {
     // Resume existing session with provided session ID
     session_id($_GET['sid']);
+    log_security_event("Set session ID to: " . $_GET['sid'], $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 }
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+    log_security_event("Session started - Current session ID: " . session_id(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    log_security_event("Session data keys: " . implode(', ', array_keys($_SESSION)), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 }
 
 // ============================================
@@ -50,7 +56,7 @@ function validate_logout_token(): bool
     
     // Check if session token exists
     if (!isset($_SESSION['webtrees_logout_token'])) {
-        log_security_event('No session token found', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+        log_security_event('No session token found in session. Session ID: ' . session_id(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
         return false;
     }
     

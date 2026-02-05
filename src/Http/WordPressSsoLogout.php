@@ -46,11 +46,26 @@ class WordPressSsoLogout extends Logout
         // Without this, session data may not be available in the bridge script
         session_write_close();
         
-        // Get the session ID to pass to bridge script
+        // Get the session ID BEFORE calling parent::handle()
         $session_id = session_id();
+        
+        // Log logout initiation with session details
+        $data_dir = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'data';
+        $log_file = $data_dir . DIRECTORY_SEPARATOR . 'sso_debug.txt';
+        $log_msg = date('Y-m-d H:i:s') . " - SSO Logout: Token saved to session. Session ID: {$session_id}, Token: {$logout_token}\n";
+        @file_put_contents($log_file, $log_msg, FILE_APPEND);
         
         // Restart session for parent::handle() to work properly
         session_start();
+        
+        // Verify session ID hasn't changed
+        $session_id_after = session_id();
+        if ($session_id !== $session_id_after) {
+            $log_msg = date('Y-m-d H:i:s') . " - SSO Logout WARNING: Session ID changed! Before: {$session_id}, After: {$session_id_after}\n";
+            @file_put_contents($log_file, $log_msg, FILE_APPEND);
+            // Use the original session ID
+            $session_id = session_id_after;
+        }
         
         // Log the user out of webtrees (this destroys Webtrees session data but not PHP session)
         parent::handle($request);
