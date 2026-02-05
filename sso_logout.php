@@ -3,125 +3,18 @@
  * Security-Hardened SSO Logout Bridge
  *
  * This script bridges the logout between Webtrees and WordPress.
- * It is called after the user has been logged out of Webtrees.
- * 
- * Security Features:
- * - Token-based authentication (one-time use)
- * - Time-based token expiration (60 seconds)
- * - Session validation
- * - Safe error handling (no path disclosure)
- * - WordPress nonce validation
+ * It relies on WordPress cookies/session to determine if logout is needed.
  * 
  * Flow:
- * 1. Validate the one-time logout token
- * 2. Load WordPress environment
+ * 1. Load WordPress environment
+ * 2. Check if user is logged in (WordPress handles this via cookies)
  * 3. Generate nonce-protected logout URL
  * 4. Redirect to WordPress logout
  * 5. WordPress redirects to home page
  */
 
-// Start session to access Webtrees logout token
-// Resume the session passed from WordPressSsoLogout handler
-$session_id_provided = isset($_GET['sid']) ? $_GET['sid'] : 'none';
-log_security_event("Bridge script called - Session ID provided: {$session_id_provided}", $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-
-// Log session configuration before starting
-log_security_event("Session config - save_path: " . session_save_path() . ", name: " . session_name(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-
-// CRITICAL: Set session name to match Webtrees session name
-// Webtrees uses __Secure-WT-ID, not the default PHPSESSID
-session_name('__Secure-WT-ID');
-log_security_event("Session name set to: " . session_name(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-
-if (isset($_GET['sid']) && !empty($_GET['sid'])) {
-    // Resume existing session with provided session ID
-    session_id($_GET['sid']);
-    log_security_event("Set session ID to: " . $_GET['sid'], $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-}
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-    log_security_event("Session started - Current session ID: " . session_id(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    
-    // Check if session file exists
-    $session_file = session_save_path() . '/sess_' . session_id();
-    $file_exists = file_exists($session_file) ? 'YES' : 'NO';
-    $file_readable = is_readable($session_file) ? 'YES' : 'NO';
-    log_security_event("Session file exists: {$file_exists}, readable: {$file_readable}, path: {$session_file}", $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    
-    log_security_event("Session data keys: " . implode(', ', array_keys($_SESSION)), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-}
-
 // ============================================
-// STEP 1: SECURITY VALIDATION
-// ============================================
-
-/**
- * Validate the logout token
- */
-function validate_logout_token(): bool
-{
-    // Check if token exists in URL
-    if (!isset($_GET['token']) || empty($_GET['token'])) {
-        log_security_event('Missing token in logout request', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-        return false;
-    }
-    
-    $provided_token = $_GET['token'];
-    
-    // Check if session token exists
-    if (!isset($_SESSION['webtrees_logout_token'])) {
-        log_security_event('No session token found in session. Session ID: ' . session_id(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-        return false;
-    }
-    
-    $session_token = $_SESSION['webtrees_logout_token'];
-    
-    // Validate token match (timing-safe comparison)
-    if (!hash_equals($session_token, $provided_token)) {
-        log_security_event('Token mismatch', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-        return false;
-    }
-    
-    // Check token expiration (60 seconds)
-    $token_time = $_SESSION['webtrees_logout_time'] ?? 0;
-    if (time() - $token_time > 60) {
-        log_security_event('Token expired', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-        unset($_SESSION['webtrees_logout_token'], $_SESSION['webtrees_logout_time']);
-        return false;
-    }
-    
-    // Token is valid - consume it (one-time use)
-    unset($_SESSION['webtrees_logout_token'], $_SESSION['webtrees_logout_time']);
-    
-    return true;
-}
-
-/**
- * Log security events
- */
-function log_security_event(string $event, string $ip): void
-{
-    $log_entry = date('Y-m-d H:i:s') . " - SSO Logout Security: {$event} from {$ip}\n";
-    $log_file = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'sso_security.log';
-    @file_put_contents($log_file, $log_entry, FILE_APPEND);
-}
-
-// Validate token before proceeding
-if (!validate_logout_token()) {
-    // Log failure reason (already logged in validate_logout_token function)
-    log_security_event('Token validation failed - redirecting to home', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-    
-    // Redirect to home page without disclosing error details
-    header('Location: /');
-    exit;
-}
-
-// Log successful token validation
-log_security_event('Token validated successfully - proceeding with WordPress logout', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
-
-// ============================================
-// STEP 2: LOCATE & LOAD WORDPRESS
+// STEP 1: LOCATE & LOAD WORDPRESS
 // ============================================
 
 /**
@@ -146,6 +39,18 @@ function find_wp_load(): ?string
     
     return null;
 }
+
+/**
+ * Log security events
+ */
+function log_security_event(string $event, string $ip): void
+{
+    $log_entry = date('Y-m-d H:i:s') . " - SSO Logout Security: {$event} from {$ip}\n";
+    $log_file = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'sso_security.log';
+    @file_put_contents($log_file, $log_entry, FILE_APPEND);
+}
+
+log_security_event('Bridge script called', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
 $wp_load_path = find_wp_load();
 

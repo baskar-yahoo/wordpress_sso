@@ -30,57 +30,7 @@ class WordPressSsoLogout extends Logout
 
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
-        // Generate a secure one-time logout token
-        $logout_token = bin2hex(random_bytes(32));
-        $logout_time = time();
-        
-        // Store token in PHP native session (survives Webtrees session destruction)
-        // We need to do this BEFORE calling parent::handle() which destroys Webtrees session
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-            $this->logDebug("Session started. Session ID: " . session_id());
-        } else {
-            $this->logDebug("Session already active. Session ID: " . session_id());
-        }
-        
-        // Log session configuration
-        $this->logDebug("Session config - save_path: " . session_save_path() . ", name: " . session_name());
-        
-        $_SESSION['webtrees_logout_token'] = $logout_token;
-        $_SESSION['webtrees_logout_time'] = $logout_time;
-        $this->logDebug("Token stored in session. Keys: " . implode(', ', array_keys($_SESSION)));
-        
-        // CRITICAL: Write session data to disk immediately
-        // Without this, session data may not be available in the bridge script
-        session_write_close();
-        $this->logDebug("Session written to disk and closed");
-        
-        // Get the session ID BEFORE calling parent::handle()
-        $session_id = session_id();
-        $this->logDebug("Session ID captured: {$session_id}");
-        
-        // Log logout initiation with session details
-        // Path: src/Http -> src -> wordpress_sso -> modules_v4 -> familytree -> data
-        $data_dir = dirname(__DIR__, 5) . DIRECTORY_SEPARATOR . 'data';
-        $log_file = $data_dir . DIRECTORY_SEPARATOR . 'sso_debug.txt';
-        $log_msg = date('Y-m-d H:i:s') . " - SSO Logout: Token saved to session. Session ID: {$session_id}, Token: {$logout_token}\n";
-        @file_put_contents($log_file, $log_msg, FILE_APPEND);
-        
-        // Restart session for parent::handle() to work properly
-        session_start();
-        $this->logDebug("Session restarted. Session ID: " . session_id());
-        
-        // Verify session ID hasn't changed
-        $session_id_after = session_id();
-        if ($session_id !== $session_id_after) {
-            $log_msg = date('Y-m-d H:i:s') . " - SSO Logout WARNING: Session ID changed! Before: {$session_id}, After: {$session_id_after}\n";
-            @file_put_contents($log_file, $log_msg, FILE_APPEND);
-            $this->logDebug("WARNING: Session ID changed! Before: {$session_id}, After: {$session_id_after}");
-            // Use the new session ID
-            $session_id = $session_id_after;
-        }
-        
-        // Log the user out of webtrees (this destroys Webtrees session data but not PHP session)
+        // Log the user out of webtrees first
         parent::handle($request);
 
         // Build the bridge script URL dynamically
@@ -101,12 +51,12 @@ class WordPressSsoLogout extends Logout
             $webtrees_base = '/';
         }
         
-        // Construct the logout bridge URL with token and session ID
-        $logout_url = $base_url . $webtrees_base . '/modules_v4/wordpress_sso/sso_logout.php?token=' . urlencode($logout_token) . '&sid=' . urlencode($session_id);
+        // Construct the logout bridge URL (WordPress will check its own cookies)
+        $logout_url = $base_url . $webtrees_base . '/modules_v4/wordpress_sso/sso_logout.php';
         
         // Debug logging if enabled
         if ($this->module->getConfig('debugEnabled', '0') === '1') {
-            $this->logDebug("Logout initiated: token={$logout_token}, url={$logout_url}");
+            $this->logDebug("Webtrees logout complete. Redirecting to WordPress logout bridge: {$logout_url}");
         }
 
         return redirect($logout_url);
