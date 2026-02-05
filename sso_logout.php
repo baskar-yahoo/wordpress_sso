@@ -82,10 +82,16 @@ function log_security_event(string $event, string $ip): void
 
 // Validate token before proceeding
 if (!validate_logout_token()) {
+    // Log failure reason (already logged in validate_logout_token function)
+    log_security_event('Token validation failed - redirecting to home', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    
     // Redirect to home page without disclosing error details
     header('Location: /');
     exit;
 }
+
+// Log successful token validation
+log_security_event('Token validated successfully - proceeding with WordPress logout', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
 // ============================================
 // STEP 2: LOCATE & LOAD WORDPRESS
@@ -117,11 +123,14 @@ function find_wp_load(): ?string
 $wp_load_path = find_wp_load();
 
 if (!$wp_load_path) {
-    log_security_event('WordPress wp-load.php not found', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    log_security_event('WordPress wp-load.php not found - tried multiple paths', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
     // Redirect to fallback location
     header('Location: /');
     exit;
 }
+
+// Log successful WordPress discovery
+log_security_event('WordPress found at: ' . $wp_load_path, $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
 // Load WordPress environment with error handling
 try {
@@ -155,6 +164,9 @@ $redirect_to = home_url();
 // Generate nonce-protected logout URL
 // wp_logout_url() automatically creates a nonce for the current user
 $logout_url = wp_logout_url($redirect_to);
+
+// Log the generated logout URL for debugging
+log_security_event('Generated logout URL: ' . $logout_url, $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
 // Decode HTML entities (some WP configs return &amp; instead of &)
 $logout_url = html_entity_decode($logout_url);

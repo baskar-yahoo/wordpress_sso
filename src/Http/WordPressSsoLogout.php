@@ -42,6 +42,13 @@ class WordPressSsoLogout extends Logout
         $_SESSION['webtrees_logout_token'] = $logout_token;
         $_SESSION['webtrees_logout_time'] = $logout_time;
         
+        // CRITICAL: Write session data to disk immediately
+        // Without this, session data may not be available in the bridge script
+        session_write_close();
+        
+        // Restart session for parent::handle() to work properly
+        session_start();
+        
         // Log the user out of webtrees (this destroys Webtrees session data but not PHP session)
         parent::handle($request);
 
