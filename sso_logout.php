@@ -28,6 +28,11 @@ log_security_event("Bridge script called - Session ID provided: {$session_id_pro
 // Log session configuration before starting
 log_security_event("Session config - save_path: " . session_save_path() . ", name: " . session_name(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
 
+// CRITICAL: Set session name to match Webtrees session name
+// Webtrees uses __Secure-WT-ID, not the default PHPSESSID
+session_name('__Secure-WT-ID');
+log_security_event("Session name set to: " . session_name(), $_SERVER['REMOTE_ADDR'] ?? 'unknown');
+
 if (isset($_GET['sid']) && !empty($_GET['sid'])) {
     // Resume existing session with provided session ID
     session_id($_GET['sid']);
