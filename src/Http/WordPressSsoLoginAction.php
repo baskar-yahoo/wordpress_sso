@@ -191,28 +191,23 @@ class WordPressSsoLoginAction implements RequestHandlerInterface
                     'warning'
                 );
                 
-                $this->logger->log('User logged in but email not verified - Flash message added', [
+                $this->logger->log('User logged in but email not verified', [
                     'user' => $user->userName(),
-                    'email' => $user->email(),
-                    'message' => 'Email not verified warning'
+                    'email' => $user->email()
                 ]);
             } elseif ($user->getPreference(UserInterface::PREF_IS_ACCOUNT_APPROVED) !== '1') {
-                $flash_message = I18N::translate('Your account is pending administrator approval. You have limited access until approved. You will be notified via email once approved.');
-                FlashMessages::addMessage($flash_message, 'warning');
+                FlashMessages::addMessage(
+                    I18N::translate('Your account is pending administrator approval. You have limited access until approved. You will be notified via email once approved.'),
+                    'warning'
+                );
                 
-                $this->logger->log('User logged in but not approved - Flash message added', [
+                $this->logger->log('User logged in but not approved - restricted access', [
                     'user' => $user->userName(),
-                    'email' => $user->email(),
-                    'message' => $flash_message,
-                    'flash_count' => count(FlashMessages::getMessages())
+                    'email' => $user->email()
                 ]);
                 
                 // Notify administrators about pending approval (only once)
                 $this->notifyAdministratorsAboutPendingUser($user, $request);
-            } else {
-                $this->logger->log('User fully approved - no flash message needed', [
-                    'user' => $user->userName()
-                ]);
             }
 
             $this->logger->log('Login successful', [
