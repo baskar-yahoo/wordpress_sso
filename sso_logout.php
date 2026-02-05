@@ -41,10 +41,40 @@ function find_wp_load(): ?string
 }
 
 /**
- * Log security events
+ * Check if debug mode is enabled from config.ini.php
+ */
+function is_debug_enabled(): bool
+{
+    static $debug_enabled = null;
+    
+    if ($debug_enabled === null) {
+        $config_file = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'config.ini.php';
+        if (file_exists($config_file)) {
+            $config_content = @file_get_contents($config_file);
+            if ($config_content !== false) {
+                // Look for WordPress_SSO_debugEnabled='1' or sso_debug_enabled='1'
+                $debug_enabled = (preg_match('/(?:WordPress_SSO_debugEnabled|sso_debug_enabled)\s*=\s*[\'"]1[\'"]/', $config_content) === 1);
+            }
+        }
+        // Default to false if config not found
+        if ($debug_enabled === null) {
+            $debug_enabled = false;
+        }
+    }
+    
+    return $debug_enabled;
+}
+
+/**
+ * Log security events (only if debug mode is enabled)
  */
 function log_security_event(string $event, string $ip): void
 {
+    // Skip logging completely if debug is disabled
+    if (!is_debug_enabled()) {
+        return;
+    }
+    
     $log_entry = date('Y-m-d H:i:s') . " - SSO Logout Security: {$event} from {$ip}\n";
     $log_file = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'sso_security.log';
     @file_put_contents($log_file, $log_entry, FILE_APPEND);

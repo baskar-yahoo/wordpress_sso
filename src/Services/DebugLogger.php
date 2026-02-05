@@ -17,12 +17,14 @@ class DebugLogger
 
     /**
      * Log a debug message
+     * Does nothing if debug mode is disabled - no file operations performed
      *
      * @param string $message
      * @param array  $context
      */
     public function log(string $message, array $context = []): void
     {
+        // Early return - skip all logging operations including file writes
         if (!$this->debug_enabled) {
             return;
         }
