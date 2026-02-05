@@ -21,8 +21,16 @@
  */
 
 // Start session to access Webtrees logout token
+// Resume the session passed from WordPressSsoLogout handler
+if (isset($_GET['sid']) && !empty($_GET['sid'])) {
+    // Resume existing session with provided session ID
+    session_id($_GET['sid']);
+    log_debug("Resuming session ID: " . $_GET['sid']);
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+    log_debug("Session started. Current session ID: " . session_id());
 }
 
 // ============================================

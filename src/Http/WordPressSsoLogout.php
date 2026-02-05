@@ -46,6 +46,9 @@ class WordPressSsoLogout extends Logout
         // Without this, session data may not be available in the bridge script
         session_write_close();
         
+        // Get the session ID to pass to bridge script
+        $session_id = session_id();
+        
         // Restart session for parent::handle() to work properly
         session_start();
         
@@ -70,8 +73,8 @@ class WordPressSsoLogout extends Logout
             $webtrees_base = '/';
         }
         
-        // Construct the logout bridge URL with token
-        $logout_url = $base_url . $webtrees_base . '/modules_v4/wordpress_sso/sso_logout.php?token=' . urlencode($logout_token);
+        // Construct the logout bridge URL with token and session ID
+        $logout_url = $base_url . $webtrees_base . '/modules_v4/wordpress_sso/sso_logout.php?token=' . urlencode($logout_token) . '&sid=' . urlencode($session_id);
         
         // Debug logging if enabled
         if ($this->module->getConfig('debugEnabled', '0') === '1') {
